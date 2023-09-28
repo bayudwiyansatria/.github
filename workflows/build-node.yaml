@@ -1,0 +1,58 @@
+name: Build Node
+on:
+  workflow_call:
+    inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Platform
+      #---------------------------------------------------------------------------------------------------------------------  
+      NODE_VERSION:
+        type: string
+        required: false
+        default: 16
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------  
+      NPM_REGISTRY:
+        type: string
+        required: false
+        default: npm.pkg.github.com
+    secrets:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------  
+      NPM_AUTH_TOKEN:
+        required: true
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Build
+  #---------------------------------------------------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version:
+          - ${{ inputs.NODE_VERSION }}
+        os:
+          - ubuntu-latest
+    steps:
+      # Prepare Repository
+      - name: Prepare
+        uses: actions/checkout@v3
+      # Setup Node
+      - name: Set Up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: ${{ inputs.NPM_REGISTRY }}
+          cache: npm
+          always-auth: true
+          check-latest: false
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      # Installing Package
+      - name: Installing Node Packages
+        run: npm ci
+      # Build
+      - name: Build Node Packages
+        run: npm run build --if-present
