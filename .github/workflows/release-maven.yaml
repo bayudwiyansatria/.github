@@ -1,0 +1,136 @@
+name: Main
+on:
+  workflow_call:
+    inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Platform
+      #---------------------------------------------------------------------------------------------------------------------
+      MAJOR_VERSION:
+        type: string
+        required: false
+        default: 0
+      MINOR_VERSION:
+        type: string
+        required: false
+        default: 0
+      INCREMENTAL_VERSION:
+        type: string
+        required: false
+        default: 1
+      #---------------------------------------------------------------------------------------------------------------------
+      # Deployment
+      #---------------------------------------------------------------------------------------------------------------------
+      ENVIRONMENT:
+        type: string
+        required: false
+        default: development
+      #---------------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #---------------------------------------------------------------------------------------------------------------------
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: target
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: target
+    secrets:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------
+      GITHUB_TOKEN:
+        required: true
+env:
+  tag_name: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Deploy
+  #---------------------------------------------------------------------------------------------------------------------
+  deploy:
+    name: Snapshot
+    uses: bayudwiyansatria/.github/.github/workflows/deploy-maven.yaml@master
+    needs: build
+    with:
+      JAVA_VERSION: 11
+    secrets:
+      MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+      MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+  #---------------------------------------------------------------------------------------------------------------------
+  # Release
+  #---------------------------------------------------------------------------------------------------------------------
+  release:
+    name: Release
+    needs: build
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        java-version: [ 11.0.3 ]
+        operating-system: [ ubuntu-latest ]
+    steps:
+    # Prepare Repository
+    - name: Prepare
+      uses: actions/checkout@v3
+    # Download Artifact
+    - name: Download Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+    # Setup Java
+    - name: Set Up Java Development Kit
+      uses: actions/setup-java@v2
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: adopt
+        cache: maven
+        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+        gpg-passphrase: GPG_PASSPHRASE
+        settings-path: ${{ github.workspace }}
+    # Prepare Deployment
+    - name: Prepare Deployment
+      run: >-
+        mvn
+        --no-transfer-progress
+        --settings settings.xml
+        build-helper:parse-version
+        versions:set -DnewVersion=\${{ env.tag_name }}-SNAPSHOT
+        versions:commit
+      env:
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+    # Prepare Deployment
+    - name: Deployment
+      run: >-
+        mvn
+        --batch-mode
+        --no-transfer-progress
+        --settings settings.xml
+        --file pom.xml
+        package
+        gpg:sign
+        deploy
+      env:
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+    # Configure Git
+    - name: Configure Git user
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+        git checkout -b tmp
+        mvn build-helper:parse-version versions:set -DnewVersion=${{ env.versions }} versions:commit --no-transfer-progress
+        export CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        git add pom.xml
+        git commit -m "[SKIP CI] Set ${CURRENT_VERSION}"
+        git push origin tmp:develop -f
+    # Git Tag
+    - name: Git Tag
+      run: |
+        git add .
+        git commit -m "Release ${{ env.tag_name }}"
+        git tag ${{ env.tag_name }}
+        git push origin ${{ env.tag_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
