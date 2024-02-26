@@ -1,0 +1,68 @@
+name: Publish
+on:
+  workflow_call:
+    inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Platform
+      #---------------------------------------------------------------------------------------------------------------------
+      NODE_VERSION:
+        type: string
+        required: false
+        default: 16
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------
+      NPM_REGISTRY:
+        type: string
+        required: true
+      #---------------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #---------------------------------------------------------------------------------------------------------------------
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: target
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: target
+    secrets:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------
+      NPM_AUTH_TOKEN:
+        required: true
+jobs:
+  release:
+    name: Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version:
+        - ${{ inputs.NODE_VERSION }}
+        os:
+        - ubuntu-latest
+    steps:
+    # Prepare Repository
+    - name: Prepare
+      uses: actions/checkout@v3
+    # Download Artifact
+    - name: Download Artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+        # Setup Node
+    - name: Set Up Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        registry-url: ${{ inputs.NPM_REGISTRY }}
+        cache: npm
+        always-auth: true
+        check-latest: false
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+    # Release
+    - name: Release
+      run: npm publish --if-present
