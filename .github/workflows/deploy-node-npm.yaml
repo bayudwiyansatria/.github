@@ -21,11 +21,11 @@ on:
       ARTIFACT_NAME:
         type: string
         required: false
-        default: target
+        default: lib
       ARTIFACT_PATH:
         type: string
         required: false
-        default: target
+        default: lib
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
