@@ -16,6 +16,21 @@ on:
         type: string
         required: false
         default: npm.pkg.github.com
+      #---------------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #---------------------------------------------------------------------------------------------------------------------
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: lib
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: lib
+      ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: 1
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
@@ -63,3 +78,10 @@ jobs:
     # Build
     - name: Build Node Packages
       run: npm run build --if-present
+    # Upload Artifact
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+        retention-days: ${{ inputs.ARTIFACT_RETENTION }}
