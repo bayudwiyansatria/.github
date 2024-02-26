@@ -1,17 +1,17 @@
-name: Build Node with NPM
+name: Node Documentation
 on:
   workflow_call:
     inputs:
       #---------------------------------------------------------------------------------------------------------------------
       # Platform
-      #---------------------------------------------------------------------------------------------------------------------  
+      #---------------------------------------------------------------------------------------------------------------------
       NODE_VERSION:
         type: string
         required: false
         default: 16
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
-      #---------------------------------------------------------------------------------------------------------------------  
+      #---------------------------------------------------------------------------------------------------------------------
       NPM_REGISTRY:
         type: string
         required: false
@@ -22,11 +22,11 @@ on:
       ARTIFACT_NAME:
         type: string
         required: false
-        default: lib
+        default: docs
       ARTIFACT_PATH:
         type: string
         required: false
-        default: lib
+        default: dist/docs
       ARTIFACT_RETENTION:
         type: string
         required: false
@@ -34,7 +34,7 @@ on:
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
-      #---------------------------------------------------------------------------------------------------------------------  
+      #---------------------------------------------------------------------------------------------------------------------
       NPM_AUTH_TOKEN:
         required: true
 jobs:
@@ -76,9 +76,9 @@ jobs:
     - name: Installing Node Packages
       run: npm ci
     # Build
-    - name: Build Node Packages
-      run: npm run build --if-present
-    # Upload Artifact
+    - name: Build Node Docs
+      run: npm run build:docs --if-present
+    # Only Upload If Workflow Called
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with:
