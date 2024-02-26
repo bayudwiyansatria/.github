@@ -1,4 +1,4 @@
-name: Build Node
+name: Build NPM
 on:
   workflow_call:
     inputs:
@@ -50,6 +50,13 @@ jobs:
         check-latest: false
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+    # Cache NPM
+    - name: Cache NPM Modules
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-npm
     # Installing Package
     - name: Installing Node Packages
       run: npm ci
