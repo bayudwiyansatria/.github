@@ -90,7 +90,6 @@ jobs:
         cache: maven
         gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
         gpg-passphrase: GPG_PASSPHRASE
-        settings-path: ${{ github.workspace }}
     # Prepare Deployment
     - name: Prepare Deployment
       run: >-
