@@ -38,22 +38,22 @@ jobs:
     strategy:
       matrix:
         dotnet-version:
-          - ${{ inputs.DOTNET_VERSION }}
+        - ${{ inputs.DOTNET_VERSION }}
         os:
-          - ubuntu-latest
+        - ubuntu-latest
     steps:
-      # Prepare Repository
-      - name: Prepare
-        uses: actions/checkout@v3
-      # Setup Dotnet
-      - name: Set Up Dotnet
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ matrix.dotnet-version }}
-      # Build
-      - name: Build Dotnet Packages
-        run: >-
-          dotnet 
-          build 
-          --configuration Release 
-          {{ inputs.NAME }}.csproj
+    # Prepare Repository
+    - name: Prepare
+      uses: actions/checkout@v3
+    # Setup Dotnet
+    - name: Set Up Dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+    # Build
+    - name: Build Dotnet Packages
+      run: >-
+        dotnet
+        build
+        --configuration Release
+        {{ inputs.NAME }}.csproj

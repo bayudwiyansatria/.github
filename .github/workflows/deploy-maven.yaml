@@ -1,7 +1,14 @@
-name: Deploy to Azure
+name: Deploy Maven
 on:
   workflow_call:
     inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Platform
+      #---------------------------------------------------------------------------------------------------------------------
+      JAVA_VERSION:
+        type: string
+        required: false
+        default: 11
       #---------------------------------------------------------------------------------------------------------------------
       # Deployment
       #---------------------------------------------------------------------------------------------------------------------
@@ -20,35 +27,13 @@ on:
         type: string
         required: false
         default: target
-      #---------------------------------------------------------------------------------------------------------------------
-      # Azure
-      #---------------------------------------------------------------------------------------------------------------------
-      AZURE_TYPE:
-        type: string
-        required: true
-      AZURE_APP_NAME:
-        type: string
-        required: true
-      AZURE_APP_SLOT:
-        type: string
-        required: false
-        default: production
-      AZURE_ARTIFACT:
-        type: string
-        required: true
-      AZURE_IDENTITY:
-        type: string
-        required: false
-        default: IDENTITY
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
       #---------------------------------------------------------------------------------------------------------------------
-      AZURE_TENANT_ID:
+      MAVEN_USERNAME:
         required: true
-      AZURE_SUBSCRIPTION_ID:
-        required: true
-      AZURE_CLIENT_ID:
+      MAVEN_PASSWORD:
         required: true
 jobs:
   #---------------------------------------------------------------------------------------------------------------------
@@ -65,24 +50,27 @@ jobs:
         os:
         - ubuntu-latest
     steps:
+    # Prepare Repository
+    - name: Prepare
+      uses: actions/checkout@v3
     # Download Artifact
     - name: Download Artifact
       uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
-    # Azure Login
-    - name: Login
-      uses: azure/login@v1
+    # Setup Java
+    - name: Set Up Java Development Kit
+      uses: actions/setup-java@v2
       with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    # Deploy to WebApp
-    - name: Deploy to Azure Web App
-      if: ${{ inputs.AZURE_TYPE == 'WebApp' }}
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: ${{ inputs.AZURE_APP_NAME }}
-        slot-name: ${{ inputs.AZURE_APP_SLOT }}
-        package: ${{ inputs.AZURE_ARTIFACT }}
+        java-version: ${{ matrix.java-version }}
+        distribution: adopt
+        cache: maven
+        settings-path: ${{ github.workspace }}
+    # Maven Deploy
+    - name: Maven deploy
+      run: mvn --batch-mode --no-transfer-progress --settings settings.xml --file pom.xml deploy
+      env:
+        MAVEN_USERNAME: ${{ github.event.repository.owner.login }}
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+        

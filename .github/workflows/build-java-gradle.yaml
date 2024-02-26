@@ -49,26 +49,26 @@ jobs:
     strategy:
       matrix:
         java-version:
-          - ${{ inputs.JAVA_VERSION }}
+        - ${{ inputs.JAVA_VERSION }}
         os:
-          - ubuntu-latest
+        - ubuntu-latest
     steps:
-      # Prepare Repository
-      - name: Prepare
-        uses: actions/checkout@v3
-      # Setup Java
-      - name: Set Up Java
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ matrix.java-version }}
-          distribution: adopt
-          cache: maven
-      # Build
-      - name: Build Gradle Packages
-        run: >-
-          gradle 
-          -x 
-          bootJar
-        env:
-          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+    # Prepare Repository
+    - name: Prepare
+      uses: actions/checkout@v3
+    # Setup Java
+    - name: Set Up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: adopt
+        cache: maven
+    # Build
+    - name: Build Gradle Packages
+      run: >-
+        gradle
+        -x
+        bootJar
+      env:
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
