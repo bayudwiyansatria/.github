@@ -1,0 +1,69 @@
+name: Node Test
+on:
+  workflow_call:
+    inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #---------------------------------------------------------------------------------------------------------------------
+      ARTIFACT_REPOSITORY:
+        type: string
+        required: true
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: coverage
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: dist/coverage
+      ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: 1
+    secrets:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Code Analysis
+      #---------------------------------------------------------------------------------------------------------------------
+      CODECOV_TOKEN:
+        required: false
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Code Analysis
+  #---------------------------------------------------------------------------------------------------------------------
+  code-analysis:
+    name: Code Analysis
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        node-version:
+        - ${{ inputs.NODE_VERSION }}
+        os:
+        - ubuntu-latest
+    steps:
+    # Prepare Repository
+    - name: Prepare
+      uses: actions/checkout@v3
+    # Download Artifact
+    - name: Download Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+    # Run Code Analysis
+    - name: Coverage Result Analysis
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ${{ inputs.ARTIFACT_PATH }}
+        files: clover.xml
+        flags: unittests
+        name: ${{ inputs.ARTIFACT_REPOSITORY }}
+        fail_ci_if_error: true
+    # Upload Coverage
+    - name: Archive Coverage Result
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ inputs.ARTIFACT_REPOSITORY }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+        retention-days: ${{ inputs.ARTIFACT_RETENTION }}
+

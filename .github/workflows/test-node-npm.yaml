@@ -1,4 +1,4 @@
-name: Publish
+name: Node Test
 on:
   workflow_call:
     inputs:
@@ -15,17 +15,6 @@ on:
       NPM_REGISTRY:
         type: string
         required: true
-      #---------------------------------------------------------------------------------------------------------------------
-      # Artifact
-      #---------------------------------------------------------------------------------------------------------------------
-      ARTIFACT_NAME:
-        type: string
-        required: false
-        default: target
-      ARTIFACT_PATH:
-        type: string
-        required: false
-        default: target
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
@@ -33,8 +22,11 @@ on:
       NPM_AUTH_TOKEN:
         required: true
 jobs:
-  release:
-    name: Release
+  #---------------------------------------------------------------------------------------------------------------------
+  # Test
+  #---------------------------------------------------------------------------------------------------------------------
+  test:
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -46,12 +38,6 @@ jobs:
     # Prepare Repository
     - name: Prepare
       uses: actions/checkout@v3
-    # Download Artifact
-    - name: Download Artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: ${{ inputs.ARTIFACT_NAME }}
-        path: ${{ inputs.ARTIFACT_PATH }}
     # Setup Node
     - name: Set Up Node
       uses: actions/setup-node@v3
@@ -63,6 +49,27 @@ jobs:
         check-latest: false
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-    # Release
-    - name: Release
-      run: npm publish --if-present
+    # Installing Package
+    - name: Installing Node Packages
+      run: npm ci
+    # Run Test
+    - name: Test
+      run: npm run test --if-present
+    - name: Coverage Result Analysis
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./dist/coverage
+        files: clover.xml
+        flags: unittests
+        name: ${{ github.event.repository.name }}
+        fail_ci_if_error: true
+    # Only Upload If Workflow Called
+    - name: Archive Coverage Result
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage
+        path: ./dist/coverage
+        retention-days: 1
+
