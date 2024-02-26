@@ -1,0 +1,61 @@
+name: GitHub Pages Deploy
+on:
+  workflow_call:
+    inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Platform
+      #---------------------------------------------------------------------------------------------------------------------
+      GITHUB_PAGES_URL:
+        type: string
+        required: false
+        default: 11
+      #---------------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #---------------------------------------------------------------------------------------------------------------------
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: dist
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: dist
+      ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: 1
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+jobs:
+  release:
+    environment:
+      name: github-pages
+      url: ${{ inputs.GITHUB_PAGES_URL }}
+    runs-on: ubuntu-latest
+    steps:
+    # Prepare Repository
+    - name: Checkout
+      uses: actions/checkout@v3
+    # Download Artifact
+    - name: Download Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+    # Setup GitHub Pages
+    - name: Setup Pages
+      uses: actions/configure-pages@v2
+    # Upload Release
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v1
+      with:
+        path: ${{ inputs.ARTIFACT_PATH }}
+    # Release
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v1
