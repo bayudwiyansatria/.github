@@ -41,6 +41,10 @@ on:
       #---------------------------------------------------------------------------------------------------------------------
       GITHUB_TOKEN:
         required: true
+      MAVEN_USERNAME:
+        required: true
+      MAVEN_PASSWORD:
+        required: true
 env:
   tag_name: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
 jobs:
