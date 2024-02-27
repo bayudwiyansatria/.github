@@ -9,6 +9,10 @@ on:
         type: string
         required: false
         default: 16
+      NODE_BUILD_COMMAND:
+        type: string
+        required: false
+        default: npm run build --if-present
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
       #---------------------------------------------------------------------------------------------------------------------  
@@ -77,7 +81,7 @@ jobs:
       run: npm ci
     # Build
     - name: Build Node Packages
-      run: npm run build --if-present
+      run: ${{ inputs.NODE_BUILD_COMMAND }}
     # Upload Artifact
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
