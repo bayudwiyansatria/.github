@@ -1,0 +1,55 @@
+name: SSH Deployment
+on:
+  workflow_call:
+    inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Deployment
+      #---------------------------------------------------------------------------------------------------------------------
+      ENVIRONMENT:
+        type: string
+        required: false
+        default: development
+      SSH_HOST:
+        type: string
+        required: true
+      SSH_PORT:
+        type: number
+        required: false
+        default: 22
+      SSH_SCRIPT:
+        type: string
+        required: true
+    secrets:
+      SSH_USERNAME:
+        required: true
+      SSH_PRIVATE_KEY:
+        required: true
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Build
+  #---------------------------------------------------------------------------------------------------------------------
+  deploy:
+    name: deploy
+    environment: ${{ inputs.ENVIRONMENT }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+        - ubuntu-latest
+    steps:
+    #-------------------------------------------------------------------------------------------------------------------
+    # Checkout Repository
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Prepare
+      uses: actions/checkout@v3
+    #-------------------------------------------------------------------------------------------------------------------
+    # Distribute Artifact
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: SSH Deployment
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ inputs.SSH_HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ inputs.SSH_PORT }}
+        script: ${{ inputs.SSH_SCRIPT }}
