@@ -13,13 +13,17 @@ on:
         type: string
         required: false
         default: npm run build --if-present
+      NODE_WORKING_DIR:
+        type: string
+        required: false
+        default: .
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
       #---------------------------------------------------------------------------------------------------------------------  
       NPM_REGISTRY:
         type: string
         required: false
-        default: npm.pkg.github.com
+        default: https://npm.pkg.github.com
       #---------------------------------------------------------------------------------------------------------------------
       # Artifact
       #---------------------------------------------------------------------------------------------------------------------
@@ -79,9 +83,11 @@ jobs:
     # Installing Package
     - name: Installing Node Packages
       run: npm ci
+      working-directory: ${{ inputs.NODE_WORKING_DIR }}
     # Build
     - name: Build Node Packages
       run: ${{ inputs.NODE_BUILD_COMMAND }}
+      working-directory: ${{ inputs.NODE_WORKING_DIR }}
     # Upload Artifact
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
