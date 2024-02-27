@@ -5,6 +5,13 @@ on:
       #---------------------------------------------------------------------------------------------------------------------
       # Platform
       #---------------------------------------------------------------------------------------------------------------------
+      GITHUB_REPOSITORY_NAME:
+        type: string
+        required: false
+        default: github
+      #---------------------------------------------------------------------------------------------------------------------
+      # Platform
+      #---------------------------------------------------------------------------------------------------------------------
       MAJOR_VERSION:
         type: string
         required: false
@@ -30,11 +37,41 @@ on:
       ARTIFACT_NAME:
         type: string
         required: false
-        default: target
+        default: assets
       ARTIFACT_PATH:
         type: string
         required: false
-        default: target
+        default: assets/bin
+      #---------------------------------------------------------------------------------------------------------------------
+      # Coverage
+      #---------------------------------------------------------------------------------------------------------------------
+      COVERAGE_ENALED:
+        type: boolean
+        required: false
+        default: false
+      COVERAGE_NAME:
+        type: string
+        required: false
+        default: coverage
+      COVERAGE_PATH:
+        type: string
+        required: false
+        default: assets/coverage
+      #---------------------------------------------------------------------------------------------------------------------
+      # Docs
+      #---------------------------------------------------------------------------------------------------------------------
+      DOCS_ENALED:
+        type: boolean
+        required: false
+        default: false
+      DOCS_NAME:
+        type: string
+        required: false
+        default: docs
+      DOCS_PATH:
+        type: string
+        required: false
+        default: assets/docs
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
@@ -58,15 +95,40 @@ jobs:
     # Prepare Repository
     - name: Prepare
       uses: actions/checkout@v3
-    # Download Artifact
-    - name: Download Artifact
+    # Download Artifact Binary
+    - name: Download Assets
       uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
+    # Download Artifact Coverage
+    - name: Download Coverage
+      if: ${{ inputs.COVERAGE_ENABLED == true }}
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.COVERAGE_NAME }}
+        path: ${{ inputs.COVERAGE_PATH }}
+    # Download Artifact Docs
+    - name: Download Documentation
+      if: ${{ inputs.DOCS_ENABLED == true }}
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.DOCS_NAME }}
+        path: ${{ inputs.DOCS_PATH }}
+    # Setup Artifact Docs
+    - name: Setup Build Asset
+      run: mv ${{ inputs.ARTIFACT_PATH }} assets/lib
+    # Setup Artifact Docs
+    - name: Setup Coverage Asset
+      if: ${{ inputs.COVERAGE_ENABLED == true }}
+      run: mv ${{ inputs.COVERAGE_PATH }} assets/coverage
+    # Setup Artifact Docs
+    - name: Download Documentation
+      if: ${{ inputs.DOCS_ENABLED == true }}
+      run: mv ${{ inputs.DOCS_PATH }} assets/docs
     # Packaging
     - name: Packaging Assets
-      run: zip -r ${{ env.tag_name }}.zip dist README.md package.json
+      run: zip -r ${{ env.tag_name }}.zip assets README.md
     # Release
     - name: Create Release
       id: create-release
@@ -85,7 +147,7 @@ jobs:
       with:
         upload_url: ${{ steps.create-release.outputs.upload_url }}
         asset_path: ./${{ env.tag_name }}.zip
-        asset_name: ${{ github.event.repository.name }}-${{ env.tag_name }}.zip
+        asset_name: ${{ inputs.GITHUB_REPOSITORY_NAME }}-${{ env.tag_name }}.zip
         asset_content_type: application/zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
