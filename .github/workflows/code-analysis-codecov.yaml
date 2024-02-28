@@ -1,4 +1,4 @@
-name: Node Test
+name: Code Analysis with CodeCov
 on:
   workflow_call:
     inputs:

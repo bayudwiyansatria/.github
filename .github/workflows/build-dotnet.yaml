@@ -1,4 +1,4 @@
-name: Build Nuget
+name: Build Dotnet
 on:
   workflow_call:
     inputs:

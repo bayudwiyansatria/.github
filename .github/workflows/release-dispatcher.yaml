@@ -1,0 +1,33 @@
+name: Release Dispatcher
+on:
+  workflow_dispatch:
+    inputs:
+      MAJOR_VERSION:
+        type: number
+        description: 'Major Version'
+        required: true
+        default: 0
+      MINOR_VERSION:
+        type: number
+        description: 'Minor Version'
+        required: true
+        default: 0
+      INCREMENTAL_VERSION:
+        type: number
+        description: 'Patch Version'
+        required: true
+        default: 0
+jobs:
+  release:
+    name: Publish
+    uses: ./.github/workflows/relase-github.yaml@master
+    with:
+      GITHUB_REPOSITORY_NAME: .github
+      MAJOR_VERSION: ${{ inputs.MAJOR_VERSION }}
+      MINOR_VERSION: ${{ inputs.MAJOR_VERSION }}
+      INCREMENTAL_VERSION: ${{ inputs.MAJOR_VERSION }}
+      ENVIRONMENT: production
+      ARTIFACT_NAME: github
+      ARTIFACT_PATH: .github/workflows
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

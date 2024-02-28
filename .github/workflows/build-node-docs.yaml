@@ -1,4 +1,4 @@
-name: Node Documentation
+name: Build Node Documentation
 on:
   workflow_call:
     inputs:

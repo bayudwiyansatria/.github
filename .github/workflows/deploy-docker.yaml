@@ -1,4 +1,4 @@
-name: Dockerized
+name: Deploy Docker
 on:
   workflow_call:
     inputs:

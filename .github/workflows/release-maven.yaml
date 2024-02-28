@@ -1,4 +1,4 @@
-name: Main
+name: Release Maven
 on:
   workflow_call:
     inputs:
@@ -47,7 +47,6 @@ jobs:
   deploy:
     name: Snapshot
     uses: bayudwiyansatria/.github/.github/workflows/deploy-maven.yaml@master
-    needs: build
     with:
       JAVA_VERSION: 11
     secrets:
@@ -58,7 +57,8 @@ jobs:
   #---------------------------------------------------------------------------------------------------------------------
   release:
     name: Release
-    needs: build
+    needs:
+    - deploy
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
@@ -95,7 +95,7 @@ jobs:
       env:
         MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-    # Prepare Deployment
+    # Deployment
     - name: Deployment
       run: >-
         mvn

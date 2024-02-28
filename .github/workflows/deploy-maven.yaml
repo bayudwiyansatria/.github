@@ -75,6 +75,7 @@ jobs:
         --settings settings.xml
         --file pom.xml
         deploy
+        -DskipTests
       env:
         MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}

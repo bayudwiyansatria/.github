@@ -1,4 +1,4 @@
-name: SSH Deployment
+name: Deploy SSH
 on:
   workflow_call:
     inputs:
