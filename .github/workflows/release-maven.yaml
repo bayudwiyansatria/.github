@@ -5,6 +5,10 @@ on:
       #---------------------------------------------------------------------------------------------------------------------
       # Platform
       #---------------------------------------------------------------------------------------------------------------------
+      JAVA_VERSION:
+        type: string
+        required: false
+        default: 11
       MAJOR_VERSION:
         type: string
         required: false
@@ -32,12 +36,13 @@ on:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
       #---------------------------------------------------------------------------------------------------------------------
-      GITHUB_TOKEN:
-        required: true
       MAVEN_USERNAME:
         required: true
       MAVEN_PASSWORD:
         required: true
+permissions:
+  contents: write
+  id-token: write
 env:
   tag_name: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
 jobs:
@@ -62,8 +67,10 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        java-version: [ 11.0.3 ]
-        operating-system: [ ubuntu-latest ]
+        java-version:
+        - ${{ inputs.JAVA_VERSION }}
+        operating-system:
+        - ubuntu-latest
     steps:
     # Prepare Repository
     - name: Prepare
@@ -90,11 +97,25 @@ jobs:
         --no-transfer-progress
         --settings settings.xml
         build-helper:parse-version
-        versions:set -DnewVersion=\${{ env.tag_name }}-SNAPSHOT
+        versions:set -DnewVersion=\${{ env.tag_name }}
         versions:commit
       env:
         MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+    # Configure Git
+    - name: Configure Git user
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+        git checkout -b tmp
+        export CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        git add .
+        git commit -m "[SKIP CI] Release ${CURRENT_VERSION}"
+        git push origin tmp:master
+        git tag ${{ env.tag_name }}
+        git push origin ${{ env.tag_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     # Deployment
     - name: Deployment
       run: >-
@@ -106,27 +127,28 @@ jobs:
         package
         gpg:sign
         deploy
+        -DskipTests
       env:
         MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-    # Configure Git
-    - name: Configure Git user
-      run: |
-        git config user.email "actions@github.com"
-        git config user.name "GitHub Actions"
-        git checkout -b tmp
-        mvn build-helper:parse-version versions:set -DnewVersion=${{ env.versions }} versions:commit --no-transfer-progress
-        export CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-        git add pom.xml
-        git commit -m "[SKIP CI] Set ${CURRENT_VERSION}"
-        git push origin tmp:develop -f
-    # Git Tag
-    - name: Git Tag
-      run: |
-        git add .
-        git commit -m "Release ${{ env.tag_name }}"
-        git tag ${{ env.tag_name }}
-        git push origin ${{ env.tag_name }}
+    # Post Deployment
+    - name: Post Deployment
+      run: >-
+        mvn
+        --no-transfer-progress
+        --settings settings.xml
+        build-helper:parse-version
+        versions:set -DnewVersion=\${{ env.tag_name }}-SNAPSHOT
+        versions:commit
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+    - name: Reconfigure Git user
+      run: |
+        export CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        git add .
+        git commit -m "[SKIP CI] Set ${CURRENT_VERSION}"
+        git push origin tmp:master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}

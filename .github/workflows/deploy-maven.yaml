@@ -40,7 +40,7 @@ jobs:
   # Deploy
   #---------------------------------------------------------------------------------------------------------------------
   deploy:
-    name: Build
+    name: Deploy
     runs-on: ${{ matrix.os }}
     environment: ${{ inputs.ENVIRONMENT }}
     strategy:

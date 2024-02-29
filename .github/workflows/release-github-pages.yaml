@@ -20,23 +20,20 @@ on:
         type: string
         required: false
         default: dist
-      ARTIFACT_RETENTION:
+      ARTIFACT_ROOT:
         type: string
         required: false
-        default: 1
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+        default: dist
 jobs:
   release:
+    name: Deploy GitHub Pages
     environment:
       name: github-pages
       url: ${{ inputs.GITHUB_PAGES_URL }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ ubuntu-latest ]
     steps:
     # Prepare Repository
     - name: Checkout
@@ -50,12 +47,18 @@ jobs:
     # Setup GitHub Pages
     - name: Setup Pages
       uses: actions/configure-pages@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # Upload Release
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
       with:
-        path: ${{ inputs.ARTIFACT_PATH }}
+        path: ${{ inputs.ARTIFACT_ROOT }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # Release
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
