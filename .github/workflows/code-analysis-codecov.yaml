@@ -20,6 +20,10 @@ on:
         type: string
         required: false
         default: 1
+      ARTIFACT_FILE:
+        type: string
+        required: false
+        default: clover.xml
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Code Analysis
@@ -55,15 +59,7 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ${{ inputs.ARTIFACT_PATH }}
-        files: clover.xml
+        files: ${{ inputs.ARTIFACT_FILE }}
         flags: unittests
         name: ${{ inputs.ARTIFACT_REPOSITORY }}
         fail_ci_if_error: true
-    # Upload Coverage
-    - name: Archive Coverage Result
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ inputs.ARTIFACT_REPOSITORY }}
-        path: ${{ inputs.ARTIFACT_PATH }}
-        retention-days: ${{ inputs.ARTIFACT_RETENTION }}
-
