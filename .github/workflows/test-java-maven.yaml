@@ -1,0 +1,80 @@
+name: Test Java Maven
+on:
+  workflow_call:
+    inputs:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Platform
+      #---------------------------------------------------------------------------------------------------------------------
+      JAVA_VERSION:
+        type: string
+        required: false
+        default: 11
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------
+      MAVEN_REGISTRY:
+        type: string
+        required: false
+        default: maven.pkg.github.com
+      MAVEN_SKIP_TEST:
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------
+      MAVEN_USERNAME:
+        required: true
+      MAVEN_PASSWORD:
+        required: true
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Test
+  #---------------------------------------------------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        java-version:
+        - ${{ inputs.JAVA_VERSION }}
+        os:
+        - ubuntu-latest
+    steps:
+    # Prepare Repository
+    - name: Prepare
+      uses: actions/checkout@v3
+    # Setup Java
+    - name: Set Up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: adopt
+        cache: maven
+    # Cache Maven
+    - name: Cache Maven Packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    # Run Test
+    - name: Build Maven Packages
+      if: ${{ inputs.MAVEN_SKIP_TEST == false }}
+      run: >-
+        mvn
+        --no-transfer-progress
+        --settings settings.xml
+        --file pom.xml
+        clean
+        test
+    # Only Upload If Workflow Called
+    - name: Archive Coverage Result
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage
+        path: ./dist/coverage
+        retention-days: 1
+
