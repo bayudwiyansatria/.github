@@ -15,6 +15,29 @@ on:
       NPM_REGISTRY:
         type: string
         required: true
+      #---------------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #---------------------------------------------------------------------------------------------------------------------
+      BUILD_ARTIFACT_NAME:
+        type: string
+        required: false
+        default: lib
+      BUILD_ARTIFACT_PATH:
+        type: string
+        required: false
+        default: lib
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: coverage
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: dist/coverage
+      ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: "1"
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
@@ -38,6 +61,12 @@ jobs:
     # Prepare Repository
     - name: Prepare
       uses: actions/checkout@v3
+    # Download Artifact
+    - name: Download Lib
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.BUILD_ARTIFACT_NAME }}
+        path: ${{ inputs.BUILD_ARTIFACT_PATH }}
     # Setup Node
     - name: Set Up Node
       uses: actions/setup-node@v3
@@ -68,6 +97,6 @@ jobs:
     - name: Archive Coverage Result
       uses: actions/upload-artifact@v3
       with:
-        name: coverage
-        path: ./dist/coverage
-        retention-days: 1
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+        retention-days: ${{ inputs.ARTIFACT_RETENTION }}
