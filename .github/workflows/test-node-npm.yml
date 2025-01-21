@@ -26,7 +26,7 @@ on:
       BUILD_ARTIFACT_PATH:
         type: string
         required: false
-        default: lib
+        default: ./lib
       ARTIFACT_NAME:
         type: string
         required: false
@@ -34,7 +34,7 @@ on:
       ARTIFACT_PATH:
         type: string
         required: false
-        default: dist/coverage
+        default: ./dist/coverage
       ARTIFACT_RETENTION:
         type: string
         required: false
@@ -44,6 +44,11 @@ on:
       # Registry
       #---------------------------------------------------------------------------------------------------------------------
       NPM_AUTH_TOKEN:
+        required: true
+      #---------------------------------------------------------------------------------------------------------------------
+      # CodeQuality
+      #---------------------------------------------------------------------------------------------------------------------
+      CODECOV_TOKEN:
         required: true
 jobs:
   #---------------------------------------------------------------------------------------------------------------------
@@ -89,7 +94,7 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ./dist/coverage
+        directory: ${{ inputs.ARTIFACT_PATH }}
         files: clover.xml
         flags: unittests
         name: ${{ github.event.repository.name }}
