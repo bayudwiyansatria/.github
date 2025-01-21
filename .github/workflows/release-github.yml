@@ -6,15 +6,15 @@ on:
       # Platform
       #---------------------------------------------------------------------------------------------------------------------
       MAJOR_VERSION:
-        type: string
+        type: number
         required: false
         default: 0
       MINOR_VERSION:
-        type: string
+        type: number
         required: false
         default: 0
       INCREMENTAL_VERSION:
-        type: string
+        type: number
         required: false
         default: 1
       #---------------------------------------------------------------------------------------------------------------------

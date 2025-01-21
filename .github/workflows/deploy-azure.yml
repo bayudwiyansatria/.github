@@ -60,8 +60,6 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     strategy:
       matrix:
-        java-version:
-        - ${{ inputs.JAVA_VERSION }}
         os:
         - ubuntu-latest
     steps:

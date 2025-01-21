@@ -1,45 +1,52 @@
-name: Deploy Node
+name: Deploy Maven
 on:
   workflow_call:
     inputs:
       #---------------------------------------------------------------------------------------------------------------------
       # Platform
       #---------------------------------------------------------------------------------------------------------------------
-      NODE_VERSION:
+      JAVA_VERSION:
         type: string
         required: false
-        default: 16
+        default: "11"
       #---------------------------------------------------------------------------------------------------------------------
-      # Registry
+      # Deployment
       #---------------------------------------------------------------------------------------------------------------------
-      NPM_REGISTRY:
+      ENVIRONMENT:
         type: string
-        required: true
+        required: false
+        default: development
       #---------------------------------------------------------------------------------------------------------------------
       # Artifact
       #---------------------------------------------------------------------------------------------------------------------
       ARTIFACT_NAME:
         type: string
         required: false
-        default: lib
+        default: target
       ARTIFACT_PATH:
         type: string
         required: false
-        default: lib
+        default: target
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
       #---------------------------------------------------------------------------------------------------------------------
-      NPM_AUTH_TOKEN:
+      MAVEN_USERNAME:
+        required: true
+      MAVEN_PASSWORD:
         required: true
 jobs:
-  release:
-    name: Release
+  #---------------------------------------------------------------------------------------------------------------------
+  # Deploy
+  #---------------------------------------------------------------------------------------------------------------------
+  deploy:
+    name: Deploy
     runs-on: ${{ matrix.os }}
+    environment: ${{ inputs.ENVIRONMENT }}
     strategy:
       matrix:
-        node-version:
-        - ${{ inputs.NODE_VERSION }}
+        java-version:
+        - ${{ inputs.JAVA_VERSION }}
         os:
         - ubuntu-latest
     steps:
@@ -47,22 +54,29 @@ jobs:
     - name: Prepare
       uses: actions/checkout@v3
     # Download Artifact
-    - name: Download Artifacts
+    - name: Download Artifact
       uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
-    # Setup Node
-    - name: Set Up Node
-      uses: actions/setup-node@v3
+    # Setup Java
+    - name: Set Up Java
+      uses: actions/setup-java@v3
       with:
-        node-version: ${{ matrix.node-version }}
-        registry-url: ${{ inputs.NPM_REGISTRY }}
-        cache: npm
-        always-auth: true
-        check-latest: false
+        java-version: ${{ matrix.java-version }}
+        distribution: adopt
+        cache: maven
+    # Maven Deploy
+    - name: Maven deploy
+      run: >-
+        mvn
+        --batch-mode
+        --no-transfer-progress
+        --settings settings.xml
+        --file pom.xml
+        deploy
+        -DskipTests
       env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-    # Release
-    - name: Release
-      run: npm publish --if-present
+        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+        

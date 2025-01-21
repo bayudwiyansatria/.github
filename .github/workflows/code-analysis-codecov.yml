@@ -19,7 +19,7 @@ on:
       ARTIFACT_RETENTION:
         type: string
         required: false
-        default: 1
+        default: "1"
       ARTIFACT_FILE:
         type: string
         required: false
@@ -39,8 +39,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version:
-        - ${{ inputs.NODE_VERSION }}
         os:
         - ubuntu-latest
     steps:

@@ -1,82 +1,97 @@
-name: Deploy Maven
+name: Build Node
 on:
   workflow_call:
     inputs:
       #---------------------------------------------------------------------------------------------------------------------
       # Platform
       #---------------------------------------------------------------------------------------------------------------------
-      JAVA_VERSION:
+      NODE_VERSION:
         type: string
         required: false
-        default: 11
-      #---------------------------------------------------------------------------------------------------------------------
-      # Deployment
-      #---------------------------------------------------------------------------------------------------------------------
-      ENVIRONMENT:
+        default: "16"
+      NODE_BUILD_COMMAND:
         type: string
         required: false
-        default: development
+        default: npm run build --if-present
+      NODE_WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #---------------------------------------------------------------------------------------------------------------------
+      # Registry
+      #---------------------------------------------------------------------------------------------------------------------
+      NPM_REGISTRY:
+        type: string
+        required: false
+        default: https://npm.pkg.github.com
       #---------------------------------------------------------------------------------------------------------------------
       # Artifact
       #---------------------------------------------------------------------------------------------------------------------
       ARTIFACT_NAME:
         type: string
         required: false
-        default: target
+        default: lib
       ARTIFACT_PATH:
         type: string
         required: false
-        default: target
+        default: lib
+      ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: "1"
     secrets:
       #---------------------------------------------------------------------------------------------------------------------
       # Registry
       #---------------------------------------------------------------------------------------------------------------------
-      MAVEN_USERNAME:
-        required: true
-      MAVEN_PASSWORD:
+      NPM_AUTH_TOKEN:
         required: true
 jobs:
   #---------------------------------------------------------------------------------------------------------------------
-  # Deploy
+  # Build
   #---------------------------------------------------------------------------------------------------------------------
-  deploy:
-    name: Deploy
+  build:
+    name: Build
     runs-on: ${{ matrix.os }}
-    environment: ${{ inputs.ENVIRONMENT }}
     strategy:
       matrix:
-        java-version:
-        - ${{ inputs.JAVA_VERSION }}
+        node-version:
+        - ${{ inputs.NODE_VERSION }}
         os:
         - ubuntu-latest
     steps:
     # Prepare Repository
     - name: Prepare
       uses: actions/checkout@v3
-    # Download Artifact
-    - name: Download Artifact
-      uses: actions/download-artifact@v3
+    # Setup Node
+    - name: Set Up Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        registry-url: ${{ inputs.NPM_REGISTRY }}
+        cache: npm
+        always-auth: true
+        check-latest: false
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+    # Cache NPM
+    - name: Cache NPM Modules
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-npm
+    # Installing Package
+    - name: Installing Node Packages
+      run: npm ci
+      working-directory: ${{ inputs.NODE_WORKING_DIR }}
+    # Build
+    - name: Build Node Packages
+      run: ${{ inputs.NODE_BUILD_COMMAND }}
+      working-directory: ${{ inputs.NODE_WORKING_DIR }}
+    # Upload Artifact
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
-    # Setup Java
-    - name: Set Up Java
-      uses: actions/setup-java@v3
-      with:
-        java-version: ${{ matrix.java-version }}
-        distribution: adopt
-        cache: maven
-    # Maven Deploy
-    - name: Maven deploy
-      run: >-
-        mvn
-        --batch-mode
-        --no-transfer-progress
-        --settings settings.xml
-        --file pom.xml
-        deploy
-        -DskipTests
-      env:
-        MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-        
+        retention-days: ${{ inputs.ARTIFACT_RETENTION }}
