@@ -44,7 +44,7 @@ jobs:
     steps:
     # Prepare Repository
     - name: Prepare
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     # Setup Java
     - name: Set Up Java
       uses: actions/setup-java@v3
