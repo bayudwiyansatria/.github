@@ -3,6 +3,21 @@ on:
   workflow_call:
     inputs:
       #---------------------------------------------------------------------------------------------------------------------
+      # Version
+      #---------------------------------------------------------------------------------------------------------------------
+      MAJOR_VERSION:
+        type: string
+        required: false
+        default: "0"
+      MINOR_VERSION:
+        type: string
+        required: false
+        default: "0"
+      INCREMENTAL_VERSION:
+        type: string
+        required: false
+        default: "0"
+      #---------------------------------------------------------------------------------------------------------------------
       # Platform
       #---------------------------------------------------------------------------------------------------------------------
       NODE_VERSION:
@@ -33,6 +48,10 @@ on:
       #---------------------------------------------------------------------------------------------------------------------
       NPM_AUTH_TOKEN:
         required: true
+      GITHUB_PAT:
+        required: true
+env:
+  tag_name: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
 jobs:
   release:
     name: Release
@@ -64,6 +83,18 @@ jobs:
         check-latest: false
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+    # Setup Git User
+    - name: Configure Git user
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+    # Tag for Release
+    - name: Tag Release
+      run: |
+        git tag ${{ env.tag_name }}
+        git push origin ${{ env.tag_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     # Release
     - name: Release
       run: npm publish --if-present
