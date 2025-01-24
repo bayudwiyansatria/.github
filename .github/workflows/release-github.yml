@@ -68,6 +68,12 @@ on:
         type: string
         required: false
         default: assets/docs
+    secrets:
+      #---------------------------------------------------------------------------------------------------------------------
+      # GitHub
+      #---------------------------------------------------------------------------------------------------------------------
+      GITHUB_PAT:
+        required: true
 env:
   tag_name: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
 jobs:
@@ -114,6 +120,18 @@ jobs:
     - name: Setup Docs Asset
       if: ${{ inputs.DOCS_ENABLED == true }}
       run: mv ${{ inputs.DOCS_PATH }} assets/docs
+    # Setup Git User
+    - name: Configure Git user
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+    # Tag for Release
+    - name: Tag Release
+      run: |
+        git tag ${{ env.tag_name }}
+        git push origin ${{ env.tag_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     # Packaging
     - name: Packaging Assets
       run: zip -r ${{ env.tag_name }}.zip ${{ inputs.ARTIFACT_ASSETS }}
@@ -128,7 +146,7 @@ jobs:
         draft: false
         prerelease: false
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     # Upload Release
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
@@ -138,4 +156,4 @@ jobs:
         asset_name: ${{ github.event.repository.name }}}-${{ env.tag_name }}.zip
         asset_content_type: application/zip
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
