@@ -80,7 +80,7 @@ jobs:
       run: npm run build:docs --if-present
     # Only Upload If Workflow Called
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}

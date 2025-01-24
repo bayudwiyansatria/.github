@@ -104,7 +104,7 @@ jobs:
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
     # Upload Artifact
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}

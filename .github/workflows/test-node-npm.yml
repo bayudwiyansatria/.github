@@ -101,7 +101,7 @@ jobs:
         fail_ci_if_error: true
     # Only Upload If Workflow Called
     - name: Archive Coverage Result
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
