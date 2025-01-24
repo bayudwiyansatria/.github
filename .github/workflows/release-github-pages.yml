@@ -47,7 +47,7 @@ jobs:
         path: ${{ inputs.ARTIFACT_PATH }}
     # Setup GitHub Pages
     - name: Setup Pages
-      uses: actions/configure-pages@v2
+      uses: actions/configure-pages@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # Upload Release
