@@ -91,7 +91,7 @@ jobs:
     - name: Test
       run: npm run test --if-present
     - name: Coverage Result Analysis
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: ${{ inputs.ARTIFACT_PATH }}
