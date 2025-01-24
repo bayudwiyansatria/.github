@@ -61,7 +61,7 @@ jobs:
     strategy:
       matrix:
         os:
-        - ubuntu-latest
+        - ubuntu-24.04
     steps:
     # Download Artifact
     - name: Download Artifact

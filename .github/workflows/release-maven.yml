@@ -64,13 +64,13 @@ jobs:
     name: Release
     needs:
     - deploy
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         java-version:
         - ${{ inputs.JAVA_VERSION }}
-        operating-system:
-        - ubuntu-latest
+        os:
+        - ubuntu-24.04
     steps:
     # Prepare Repository
     - name: Prepare

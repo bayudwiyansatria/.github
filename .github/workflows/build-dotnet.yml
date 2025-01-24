@@ -40,7 +40,7 @@ jobs:
         dotnet-version:
           - ${{ inputs.DOTNET_VERSION }}
         os:
-          - ubuntu-latest
+          - ubuntu-24.04
     steps:
       # Prepare Repository
       - name: Prepare

@@ -55,7 +55,7 @@ jobs:
         java-version:
         - ${{ inputs.JAVA_VERSION }}
         os:
-        - ubuntu-latest
+        - ubuntu-24.04
     steps:
     # Prepare Repository
     - name: Prepare

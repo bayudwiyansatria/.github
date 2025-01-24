@@ -30,10 +30,11 @@ jobs:
     environment:
       name: github-pages
       url: ${{ inputs.GITHUB_PAGES_URL }}
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        operating-system: [ ubuntu-latest ]
+        os: 
+        - ubuntu-24.04
     steps:
     # Prepare Repository
     - name: Checkout

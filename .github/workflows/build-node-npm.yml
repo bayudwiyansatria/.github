@@ -57,7 +57,7 @@ jobs:
         node-version:
         - ${{ inputs.NODE_VERSION }}
         os:
-        - ubuntu-latest
+        - ubuntu-24.04
     steps:
     # Prepare Repository
     - name: Prepare
