@@ -30,7 +30,7 @@ on:
         required: false
         default: target
       RETENTION:
-        type: integer
+        type: number
         required: false
         default: 1
     secrets:
@@ -46,6 +46,7 @@ jobs:
   # Build
   #---------------------------------------------------------------------------------------------------------------------
   build:
+    if: ${{ github.event_name == 'workflow_call' }}
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:

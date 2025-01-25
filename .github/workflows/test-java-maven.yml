@@ -33,6 +33,7 @@ jobs:
   # Test
   #---------------------------------------------------------------------------------------------------------------------
   test:
+    if: ${{ github.event_name == 'workflow_call' }}
     name: Test
     runs-on: ${{ matrix.os }}
     strategy:

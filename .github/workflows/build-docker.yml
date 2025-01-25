@@ -52,6 +52,7 @@ jobs:
   # Dockerized
   #-------------------------------------------------------------------------------------------------
   dockerized:
+    if: ${{ github.event_name == 'workflow_call' }}
     name: Dockerized
     runs-on: ${{ matrix.os }}
     strategy:

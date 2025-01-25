@@ -1,4 +1,4 @@
-name: Test Node
+name: Test Node NPM
 on:
   workflow_call:
     inputs:
@@ -15,7 +15,7 @@ on:
       NPM_REGISTRY:
         type: string
         required: false
-        default: https://npm.pkg.github.com
+        default: npm.pkg.github.com
       #---------------------------------------------------------------------------------------------------------------------
       # Artifact
       #---------------------------------------------------------------------------------------------------------------------
@@ -51,10 +51,11 @@ on:
       CODECOV_TOKEN:
         required: true
 jobs:
-  #---------------------------------------------------------------------------------------------------------------------
+  #-------------------------------------------------------------------------------------------------------------------------
   # Test
-  #---------------------------------------------------------------------------------------------------------------------
+  #-------------------------------------------------------------------------------------------------------------------------
   test:
+    if: ${{ github.event_name == 'workflow_call' }}
     name: Test
     runs-on: ${{ matrix.os }}
     strategy:
@@ -64,16 +65,22 @@ jobs:
         os:
         - ubuntu-24.04
     steps:
+    #-------------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Prepare
       uses: actions/checkout@v3
+    #-------------------------------------------------------------------------------------------------------------------------
     # Download Artifact
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Download Lib
       uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.BUILD_ARTIFACT_NAME }}
         path: ${{ inputs.BUILD_ARTIFACT_PATH }}
-    # Setup Node
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Set Up Node
       uses: actions/setup-node@v3
       with:
@@ -84,25 +91,37 @@ jobs:
         check-latest: false
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+    #-------------------------------------------------------------------------------------------------------------------------
     # Installing Package
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Installing Node Packages
       run: npm ci
-    # Run Test
-    - name: Test
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Run Unit Test
+    #-------------------------------------------------------------------------------------------------------------------------
+    - name: Run Unit Test
       run: npm run test --if-present
-    - name: Coverage Result Analysis
-      uses: codecov/codecov-action@v3
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        directory: ${{ inputs.ARTIFACT_PATH }}
-        files: clover.xml
-        flags: unittests
-        name: ${{ github.event.repository.name }}
-        fail_ci_if_error: true
-    # Only Upload If Workflow Called
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Upload Artifact
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Archive Coverage Result
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
         retention-days: ${{ inputs.ARTIFACT_RETENTION }}
+  #---------------------------------------------------------------------------------------------------------------------------
+  # Code Analysis
+  #---------------------------------------------------------------------------------------------------------------------------
+  code-analysis:
+    if: ${{ github.event_name == 'workflow_call' }}
+    name: Code Quality
+    uses: bayudwiyansatria/.github/.github/workflows/code-analysis-codecov.yml@master
+    with:
+      ARTIFACT_REPOSITORY: ${{ github.event.repository.name }}
+      ARTIFACT_NAME: ${{ inputs.ARTIFACT_NAME }}
+      ARTIFACT_PATH: ${{ inputs.ARTIFACT_PATH }}
+      ARTIFACT_RETENTION: ${{ inputs.ARTIFACT_RETENTION }}
+      ARTIFACT_FILE: clover.xml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

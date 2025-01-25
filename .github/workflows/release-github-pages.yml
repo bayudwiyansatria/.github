@@ -26,6 +26,7 @@ on:
         default: dist
 jobs:
   release:
+    if: ${{ github.event_name == 'workflow_call' }}
     name: Deploy GitHub Pages
     environment:
       name: github-pages

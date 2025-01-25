@@ -86,6 +86,7 @@ jobs:
   # Release
   #---------------------------------------------------------------------------------------------------------------------
   release:
+    if: ${{ github.event_name == 'workflow_call' }}
     name: Release
     runs-on: ${{ matrix.os }}
     strategy:

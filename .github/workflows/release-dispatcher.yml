@@ -20,9 +20,8 @@ on:
 jobs:
   release:
     name: Publish
-    uses: ./.github/workflows/release-github.yml@master
+    uses: bayudwiyansatria/.github/.github/workflows/release-github.yml@master
     with:
-      GITHUB_REPOSITORY_NAME: .github
       MAJOR_VERSION: ${{ inputs.MAJOR_VERSION }}
       MINOR_VERSION: ${{ inputs.MAJOR_VERSION }}
       INCREMENTAL_VERSION: ${{ inputs.MAJOR_VERSION }}
@@ -30,4 +29,4 @@ jobs:
       ARTIFACT_NAME: github
       ARTIFACT_PATH: .github/workflows
     secrets:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
