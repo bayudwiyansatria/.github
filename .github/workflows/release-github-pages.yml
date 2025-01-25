@@ -3,13 +3,6 @@ on:
   workflow_call:
     inputs:
       #---------------------------------------------------------------------------------------------------------------------
-      # Platform
-      #---------------------------------------------------------------------------------------------------------------------
-      GITHUB_PAGES_URL:
-        type: string
-        required: false
-        default: "11"
-      #---------------------------------------------------------------------------------------------------------------------
       # Artifact
       #---------------------------------------------------------------------------------------------------------------------
       ARTIFACT_NAME:
@@ -24,43 +17,53 @@ on:
         type: string
         required: false
         default: dist
+    secrets:
+      #---------------------------------------------------------------------------------------------------------------------
+      # GitHub
+      #---------------------------------------------------------------------------------------------------------------------
+      GITHUB_PAT:
+        required: true
 jobs:
   release:
     if: ${{ github.event_name == 'workflow_call' }}
     name: Deploy GitHub Pages
     environment:
       name: github-pages
-      url: ${{ inputs.GITHUB_PAGES_URL }}
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: 
         - ubuntu-24.04
     steps:
+    #-------------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Checkout
       uses: actions/checkout@v3
+    #-------------------------------------------------------------------------------------------------------------------------
     # Download Artifact
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Download Artifact
       uses: actions/download-artifact@v3
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
-    # Setup GitHub Pages
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Setup Pages
       uses: actions/configure-pages@v2
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    # Upload Release
-    - name: Upload artifact
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
+    - name: Upload Pages Artifact
       uses: actions/upload-pages-artifact@v1
       with:
         path: ${{ inputs.ARTIFACT_ROOT }}
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    # Release
-    - name: Deploy to GitHub Pages
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
+    - name: Deploy GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
