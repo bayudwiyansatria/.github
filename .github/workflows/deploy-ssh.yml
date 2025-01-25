@@ -29,7 +29,6 @@ jobs:
   # Build
   #---------------------------------------------------------------------------------------------------------------------
   deploy:
-    if: ${{ github.event_name == 'workflow_call' }}
     name: deploy
     environment: ${{ inputs.ENVIRONMENT }}
     runs-on: ${{ matrix.os }}

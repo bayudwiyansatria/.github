@@ -15,7 +15,7 @@ on:
       NPM_REGISTRY:
         type: string
         required: false
-        default: npm.pkg.github.com
+        default: https://npm.pkg.github.com
       #---------------------------------------------------------------------------------------------------------------------
       # Artifact
       #---------------------------------------------------------------------------------------------------------------------
@@ -27,6 +27,9 @@ on:
         type: string
         required: false
         default: lib
+      ARTIFACT_REPOSITORY:
+        type: string
+        required: true
       ARTIFACT_NAME:
         type: string
         required: false
@@ -55,7 +58,6 @@ jobs:
   # Test
   #-------------------------------------------------------------------------------------------------------------------------
   test:
-    if: ${{ github.event_name == 'workflow_call' }}
     name: Test
     runs-on: ${{ matrix.os }}
     strategy:
@@ -74,7 +76,7 @@ jobs:
     # Download Artifact
     #-------------------------------------------------------------------------------------------------------------------------
     - name: Download Lib
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.BUILD_ARTIFACT_NAME }}
         path: ${{ inputs.BUILD_ARTIFACT_PATH }}
@@ -114,11 +116,12 @@ jobs:
   # Code Analysis
   #---------------------------------------------------------------------------------------------------------------------------
   code-analysis:
-    if: ${{ github.event_name == 'workflow_call' }}
     name: Code Quality
+    needs: 
+    - test
     uses: bayudwiyansatria/.github/.github/workflows/code-analysis-codecov.yml@master
     with:
-      ARTIFACT_REPOSITORY: ${{ github.event.repository.name }}
+      ARTIFACT_REPOSITORY: ${{ inputs.ARTIFACT_REPOSITORY }}
       ARTIFACT_NAME: ${{ inputs.ARTIFACT_NAME }}
       ARTIFACT_PATH: ${{ inputs.ARTIFACT_PATH }}
       ARTIFACT_RETENTION: ${{ inputs.ARTIFACT_RETENTION }}

@@ -30,7 +30,7 @@ on:
       NPM_REGISTRY:
         type: string
         required: false
-        default: npm.pkg.github.com
+        default: https://npm.pkg.github.com
       #---------------------------------------------------------------------------------------------------------------------
       # Artifact
       #---------------------------------------------------------------------------------------------------------------------
@@ -54,7 +54,6 @@ env:
   tag_name: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
 jobs:
   release:
-    if: ${{ github.event_name == 'workflow_call' }}
     name: Release
     runs-on: ${{ matrix.os }}
     strategy:
@@ -64,16 +63,22 @@ jobs:
         os:
         - ubuntu-24.04
     steps:
+    #-------------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Prepare
       uses: actions/checkout@v3
+    #-------------------------------------------------------------------------------------------------------------------------
     # Download Artifact
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Download Artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
-    # Setup Node
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Set Up Node
       uses: actions/setup-node@v3
       with:
@@ -84,18 +89,18 @@ jobs:
         check-latest: false
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-    # Setup Git User
-    - name: Configure Git user
-      run: |
-        git config user.email "actions@github.com"
-        git config user.name "GitHub Actions"
-    # Tag for Release
-    - name: Tag Release
-      run: |
-        git tag ${{ env.tag_name }}
-        git push origin ${{ env.tag_name }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
-    # Release
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Setup Git
+    #-------------------------------------------------------------------------------------------------------------------------
+    - name: Configure Git
+      uses: bayudwiyansatria/.github/.github/actions/git-configure@master
+    - name: Tag Git
+      uses: bayudwiyansatria/.github/.github/actions/git-tag@master
+      with:
+        tag: ${{ env.tag_name }}
+        git-token: ${{ secrets.GITHUB_PAT }}
+    #-------------------------------------------------------------------------------------------------------------------------
+    # Publish Package
+    #-------------------------------------------------------------------------------------------------------------------------
     - name: Release
       run: npm publish --if-present

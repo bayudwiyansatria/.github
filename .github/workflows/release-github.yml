@@ -86,7 +86,6 @@ jobs:
   # Release
   #---------------------------------------------------------------------------------------------------------------------
   release:
-    if: ${{ github.event_name == 'workflow_call' }}
     name: Release
     runs-on: ${{ matrix.os }}
     strategy:
@@ -101,21 +100,21 @@ jobs:
         ref: ${{ env.tag_name }}
     # Download Artifact Binary
     - name: Download Assets
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
     # Download Artifact Coverage
     - name: Download Coverage
       if: ${{ inputs.COVERAGE_ENABLED == true }}
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.COVERAGE_NAME }}
         path: assets/coverage
     # Download Artifact Docs
     - name: Download Documentation
       if: ${{ inputs.DOCS_ENABLED == true }}
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.DOCS_NAME }}
         path: assets/docs
