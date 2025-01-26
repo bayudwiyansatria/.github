@@ -1,0 +1,28 @@
+name: "Java Configure"
+description: "Configure Java for Java Operations"
+inputs:
+  java-version:
+    description: "Java Version"
+    required: false
+    default: 17.0.10
+runs:
+  using: "composite"
+  steps:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Setup Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Set Up Java
+    uses: actions/setup-java@v3
+    with:
+      node-version: ${{ inputs.java-version }}
+      distribution: adopt
+      cache: maven
+  #---------------------------------------------------------------------------------------------------------------------
+  # Cache Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Cache Maven
+    uses: actions/cache@v4
+    with:
+      path: ~/.m2
+      key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+      restore-keys: ${{ runner.os }}-m2

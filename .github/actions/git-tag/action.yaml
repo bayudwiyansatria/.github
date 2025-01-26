@@ -16,13 +16,16 @@ runs:
   steps:
   - name: Git Tag
     shell: bash
+    working-directory: .
     run: git tag ${{ inputs.tag }}
   - name: Push Tag
     shell: bash
+    working-directory: .
     run: git push origin ${{ inputs.tag }}
     env:
       GITHUB_TOKEN: ${{ inputs.git-token }}
   - id: git-tag
     name: Git Tag
     shell: bash
+    working-directory: .
     run: echo "git-tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT

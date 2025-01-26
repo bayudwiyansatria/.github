@@ -21,15 +21,19 @@ runs:
   steps:
   - name: Configure Git Email
     shell: bash
+    working-directory: .
     run: git config user.email "${{ inputs.user-mail }}"
   - name: Configure Git user
     shell: bash
+    working-directory: .
     run: git config user.name "${{ inputs.user-name }}"
   - id: git-mail
     name: Git Mail
     shell: bash
+    working-directory: .
     run: echo "git-mail=${{ inputs.user-mail }}" >> $GITHUB_OUTPUT
   - id: git-user
     name: Git User
     shell: bash
+    working-directory: .
     run: echo "git-user=${{ inputs.user-name }}" >> $GITHUB_OUTPUT
