@@ -51,7 +51,7 @@ jobs:
   #---------------------------------------------------------------------------------------------------------------------
   deploy:
     name: Snapshot
-    uses: bayudwiyansatria/.github/.github/workflows/deploy-maven.yaml@master
+    uses: bayudwiyansatria/.github/.github/workflows/deploy-maven.yml@master
     with:
       JAVA_VERSION: 11
     secrets:
@@ -72,25 +72,30 @@ jobs:
         os:
         - ubuntu-24.04
     steps:
+    #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------
     - name: Prepare
       uses: actions/checkout@v3
+    #-------------------------------------------------------------------------------------------------------------------
     # Download Artifact
+    #-------------------------------------------------------------------------------------------------------------------
     - name: Download Artifact
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
-    # Setup Java
-    - name: Set Up Java Development Kit
-      uses: actions/setup-java@v2
+    #-------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Configure Java
+      uses: bayudwiyansatria/.github/.github/actions/configure-java@master
       with:
-        java-version: ${{ matrix.java-version }}
-        distribution: adopt
-        cache: maven
-        gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-        gpg-passphrase: GPG_PASSPHRASE
-    # Prepare Deployment
+        java-version: ${{ inputs.JAVA_VERSION }}
+        gpg-sign: true
+    #-------------------------------------------------------------------------------------------------------------------
+    # Publish Package
+    #-------------------------------------------------------------------------------------------------------------------
     - name: Prepare Deployment
       run: >-
         mvn
@@ -102,21 +107,28 @@ jobs:
       env:
         MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-    # Configure Git
-    - name: Configure Git user
+    #-------------------------------------------------------------------------------------------------------------------
+    # Setup Git
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Configure Git
+      uses: bayudwiyansatria/.github/.github/actions/git-configure@master
+    - name: Prepare Deployment
       run: |
-        git config user.email "actions@github.com"
-        git config user.name "GitHub Actions"
         git checkout -b tmp
         export CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
         git add .
         git commit -m "[SKIP CI] Release ${CURRENT_VERSION}"
         git push origin tmp:master
-        git tag ${{ env.tag_name }}
-        git push origin ${{ env.tag_name }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
-    # Deployment
+    - name: Tag Git
+      uses: bayudwiyansatria/.github/.github/actions/git-tag@master
+      with:
+        tag: ${{ env.tag_name }}
+        git-token: ${{ secrets.GITHUB_PAT }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Publish Package
+    #-------------------------------------------------------------------------------------------------------------------
     - name: Deployment
       run: >-
         mvn
@@ -132,7 +144,6 @@ jobs:
         MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-    # Post Deployment
     - name: Post Deployment
       run: >-
         mvn
@@ -144,7 +155,7 @@ jobs:
       env:
         MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
         MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-    - name: Reconfigure Git user
+    - name: Reconfigure Java
       run: |
         export CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
         git add .

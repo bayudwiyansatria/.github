@@ -5,18 +5,34 @@ inputs:
     description: "Java Version"
     required: false
     default: 17.0.10
+  gpg-sign:
+    description: "GPG Sign"
+    required: false
 runs:
   using: "composite"
   steps:
   #---------------------------------------------------------------------------------------------------------------------
   # Setup Platform
   #---------------------------------------------------------------------------------------------------------------------
-  - name: Set Up Java
+  - if: ${{ inputs.gpg-sign == 'false' }}
+    name: Set Up Java
     uses: actions/setup-java@v3
     with:
-      node-version: ${{ inputs.java-version }}
+      java-version: ${{ inputs.java-version }}
       distribution: adopt
       cache: maven
+  - if: ${{ inputs.gpg-sign == 'true' }}
+    name: Set Up Java
+    uses: actions/setup-java@v3
+    with:
+      java-version: ${{ inputs.java-version }}
+      distribution: adopt
+      cache: maven
+      gpg-private-key: ${{ env.GPG_PRIVATE_KEY }}
+      gpg-passphrase: ${{ env.GPG_PASSPHRASE }}
+    env:
+      GPG_PRIVATE_KEY: ${{ env.GPG_PRIVATE_KEY }}
+      GPG_PASSPHRASE: ${{ env.GPG_PASSPHRASE }}
   #---------------------------------------------------------------------------------------------------------------------
   # Cache Platform
   #---------------------------------------------------------------------------------------------------------------------
