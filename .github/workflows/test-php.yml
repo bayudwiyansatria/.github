@@ -1,0 +1,146 @@
+name: Test PHP
+on:
+  workflow_call:
+    inputs:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      PHP_VERSION:
+        type: string
+        required: false
+        default: "8.4"
+      PHP_BUILD_COMMAND:
+        type: string
+        required: false
+        default: composer run build
+      PHP_WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # No PHP Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #-----------------------------------------------------------------------------------------------------------------
+      BUILD_ARTIFACT_NAME:
+        type: string
+        required: false
+        default: build
+      BUILD_ARTIFACT_PATH:
+        type: string
+        required: false
+        default: build
+      TEST_SKIP_CODECOV:
+        type: boolean
+        required: false
+        default: true
+      TEST_ARTIFACT_REPOSITORY:
+        type: string
+        required: false
+        default: ${{ github.event.repository.name }}
+      TEST_ARTIFACT_NAME:
+        type: string
+        required: false
+        default: coverage
+      TEST_ARTIFACT_PATH:
+        type: string
+        required: false
+        default: dist/coverage
+      TEST_ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: "1"
+    secrets:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # No PHP Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # CodeQuality
+      #-----------------------------------------------------------------------------------------------------------------
+      CODECOV_TOKEN:
+        required: false
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Test
+  #---------------------------------------------------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        php-version:
+        - ${{ inputs.PHP_VERSION }}
+        os:
+        - ubuntu-24.04
+    steps:
+    #-------------------------------------------------------------------------------------------------------------------
+    # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Prepare
+      uses: actions/checkout@v3
+    #-------------------------------------------------------------------------------------------------------------------
+    # Download Artifact
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Download Lib
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.BUILD_ARTIFACT_NAME }}
+        path: ${{ inputs.BUILD_ARTIFACT_PATH }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Configure PHP
+      uses: bayudwiyansatria/.github/.github/actions/configure-php@master
+      with:
+        php-version: ${{ inputs.PHP_VERSION }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Installing Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Install PHP Packages
+      run: >-
+        composer
+        --prefer-dist
+        --no-interaction
+        --no-suggest
+        install 
+      working-directory: ${{ inputs.PHP_WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Build Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Build PHP Packages
+      run: ${{ inputs.PHP_BUILD_COMMAND }}
+      working-directory: ${{ inputs.PHP_WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Run Unit Test
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Run Unit Test
+      run: composer run test
+    #-------------------------------------------------------------------------------------------------------------------
+    # Upload Artifact
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Archive Coverage Result
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.TEST_ARTIFACT_NAME }}
+        path: ${{ inputs.TEST_ARTIFACT_PATH }}
+        retention-days: ${{ inputs.TEST_ARTIFACT_RETENTION }}
+  #---------------------------------------------------------------------------------------------------------------------
+  # Code Analysis
+  #---------------------------------------------------------------------------------------------------------------------
+  code-analysis:
+    if: ${{ inputs.TEST_SKIP_CODECOV == false }}
+    name: Code Quality
+    needs: 
+    - test
+    uses: bayudwiyansatria/.github/.github/workflows/code-analysis-codecov.yml@master
+    with:
+      ARTIFACT_REPOSITORY: ${{ inputs.TEST_ARTIFACT_REPOSITORY }}
+      ARTIFACT_NAME: ${{ inputs.TEST_ARTIFACT_NAME }}
+      ARTIFACT_PATH: ${{ inputs.TEST_ARTIFACT_PATH }}
+      ARTIFACT_RETENTION: ${{ inputs.TEST_ARTIFACT_RETENTION }}
+      ARTIFACT_FILE: clover.xml
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

@@ -1,0 +1,105 @@
+name: Build PHP
+on:
+  workflow_call:
+    inputs:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      NODE_VERSION:
+        type: string
+        required: false
+        default: "16"
+      PHP_VERSION:
+        type: string
+        required: false
+        default: "8.4"
+      PHP_BUILD_COMMAND:
+        type: string
+        required: false
+        default: composer run build
+      PHP_WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # No PHP Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #-----------------------------------------------------------------------------------------------------------------
+      BUILD_ARTIFACT_NAME:
+        type: string
+        required: false
+        default: build
+      BUILD_ARTIFACT_PATH:
+        type: string
+        required: false
+        default: .
+      BUILD_ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: "1"
+    secrets: {}
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # No PHP Registry
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Build
+  #---------------------------------------------------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        php-version:
+        - ${{ inputs.PHP_VERSION }}
+        os:
+        - ubuntu-24.04
+    steps:
+    #-------------------------------------------------------------------------------------------------------------------
+    # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Prepare
+      uses: actions/checkout@v3
+    #-------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Configure PHP
+      uses: bayudwiyansatria/.github/.github/actions/configure-php@master
+      with:
+        php-version: ${{ inputs.PHP_VERSION }}
+    - name: Configure Node
+      uses: bayudwiyansatria/.github/.github/actions/configure-node@master
+      with:
+        node-version: ${{ inputs.NODE_VERSION }}
+      env:
+        NODE_AUTH_TOKEN: null
+    #-------------------------------------------------------------------------------------------------------------------
+    # Installing Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Install PHP Packages
+      run: >-
+        composer
+        --prefer-dist
+        --no-interaction
+        --no-suggest
+        install 
+      working-directory: ${{ inputs.PHP_WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Build Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Build PHP Packages
+      run: ${{ inputs.PHP_BUILD_COMMAND }}
+      working-directory: ${{ inputs.PHP_WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Upload Artifact
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.BUILD_ARTIFACT_NAME }}
+        path: ${{ inputs.BUILD_ARTIFACT_PATH }}
+        retention-days: ${{ inputs.BUILD_ARTIFACT_RETENTION }}
