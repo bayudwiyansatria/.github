@@ -1,0 +1,36 @@
+name: "Node Configure"
+description: "Configure Node for Node Operations"
+inputs:
+  node-version:
+    description: "Node Version"
+    required: false
+    default: 21.7.1
+  registry-url:
+    description: "NPM Registry"
+    required: false
+    default: npm.pkg.github.com
+runs:
+  using: "composite"
+  steps:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Setup Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Set Up Node
+    uses: actions/setup-node@v3
+    with:
+      node-version: ${{ inputs.node-version }}
+      registry-url: ${{ inputs.registry-url }}
+      cache: npm
+      always-auth: true
+      check-latest: false
+    env:
+      NODE_AUTH_TOKEN: ${{ env.NPM_AUTH_TOKEN }}
+  #---------------------------------------------------------------------------------------------------------------------
+  # Cache Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Cache NPM Modules
+    uses: actions/cache@v4
+    with:
+      path: ~/.npm
+      key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+      restore-keys: ${{ runner.os }}-npm

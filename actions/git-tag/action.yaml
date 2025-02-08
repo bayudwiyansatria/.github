@@ -1,0 +1,31 @@
+name: "Git Tag"
+description: "Setup Git Tag"
+inputs:
+  tag:
+    description: "Git Tag"
+    required: true
+  git-token:
+    description: "Git Token"
+    required: true
+outputs:
+  tag:
+    description: "Git Tag"
+    value: ${{ steps.git-tag.outputs.git-tag }}
+runs:
+  using: "composite"
+  steps:
+  - name: Git Tag
+    shell: bash
+    working-directory: .
+    run: git tag ${{ inputs.tag }}
+  - name: Push Tag
+    shell: bash
+    working-directory: .
+    run: git push origin ${{ inputs.tag }}
+    env:
+      GITHUB_TOKEN: ${{ inputs.git-token }}
+  - id: git-tag
+    name: Git Tag
+    shell: bash
+    working-directory: .
+    run: echo "git-tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
