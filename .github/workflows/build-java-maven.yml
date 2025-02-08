@@ -64,7 +64,7 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure Java
-      uses: bayudwiyansatria/.github/.github/actions/configure-java@master
+      uses: bayudwiyansatria/.github/actions/configure-java@master
       with:
         java-version: ${{ inputs.JAVA_VERSION }}
     #-------------------------------------------------------------------------------------------------------------------

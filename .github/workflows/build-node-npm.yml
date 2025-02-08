@@ -68,7 +68,7 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure Node
-      uses: bayudwiyansatria/.github/.github/actions/configure-node@master
+      uses: bayudwiyansatria/.github/actions/configure-node@master
       with:
         node-version: ${{ inputs.NODE_VERSION }}
       env:

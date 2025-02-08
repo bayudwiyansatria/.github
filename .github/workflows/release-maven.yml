@@ -89,7 +89,7 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure Java
-      uses: bayudwiyansatria/.github/.github/actions/configure-java@master
+      uses: bayudwiyansatria/.github/actions/configure-java@master
       with:
         java-version: ${{ inputs.JAVA_VERSION }}
         gpg-sign: true
@@ -111,7 +111,7 @@ jobs:
     # Setup Git
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure Git
-      uses: bayudwiyansatria/.github/.github/actions/git-configure@master
+      uses: bayudwiyansatria/.github/actions/git-configure@master
     - name: Prepare Deployment
       run: |
         git checkout -b tmp
@@ -122,7 +122,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     - name: Tag Git
-      uses: bayudwiyansatria/.github/.github/actions/git-tag@master
+      uses: bayudwiyansatria/.github/actions/git-tag@master
       with:
         tag: ${{ env.tag_name }}
         git-token: ${{ secrets.GITHUB_PAT }}

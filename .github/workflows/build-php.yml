@@ -68,11 +68,11 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure PHP
-      uses: bayudwiyansatria/.github/.github/actions/configure-php@master
+      uses: bayudwiyansatria/.github/actions/configure-php@master
       with:
         php-version: ${{ inputs.PHP_VERSION }}
     - name: Configure Node
-      uses: bayudwiyansatria/.github/.github/actions/configure-node@master
+      uses: bayudwiyansatria/.github/actions/configure-node@master
       with:
         node-version: ${{ inputs.NODE_VERSION }}
       env:
