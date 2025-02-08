@@ -38,9 +38,9 @@ jobs:
     strategy:
       matrix:
         dotnet-version:
-          - ${{ inputs.DOTNET_VERSION }}
+        - ${{ inputs.DOTNET_VERSION }}
         os:
-          - ubuntu-24.04
+        - ubuntu-24.04
     steps:
     #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
@@ -51,7 +51,7 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure DotNet
-      uses: bayudwiyansatria/.github/.github/actions/configure-dotnet@master
+      uses: bayudwiyansatria/.github/actions/configure-dotnet@master
     #-------------------------------------------------------------------------------------------------------------------
     # Build Package
     #-------------------------------------------------------------------------------------------------------------------

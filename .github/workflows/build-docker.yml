@@ -84,7 +84,7 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure Docker
-      uses: bayudwiyansatria/.github/.github/actions/configure-docker@master
+      uses: bayudwiyansatria/.github/actions/configure-docker@master
       with:
         docker-version: ${{ inputs.DOCKER_VERSION }}
         registry-url: ${{ inputs.DOCKER_REGISTRY }}
