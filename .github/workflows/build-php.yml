@@ -3,24 +3,31 @@ on:
   workflow_call:
     inputs:
       #-----------------------------------------------------------------------------------------------------------------
-      # Platform
+      # Usage
       #-----------------------------------------------------------------------------------------------------------------
-      NODE_VERSION:
+      PHP_COMMAND:
         type: string
         required: false
-        default: "16"
+        default: composer run build
+      WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      OS_VERSION:
+        type: string
+        required: false
+        default: ubuntu-24.04
       PHP_VERSION:
         type: string
         required: false
         default: "8.4"
-      PHP_BUILD_COMMAND:
+      NODE_VERSION:
         type: string
         required: false
-        default: composer run build
-      PHP_WORKING_DIR:
-        type: string
-        required: false
-        default: .
+        default: "16"
       #-----------------------------------------------------------------------------------------------------------------
       # Registry
       #-----------------------------------------------------------------------------------------------------------------
@@ -28,15 +35,15 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
-      BUILD_ARTIFACT_NAME:
+      ARTIFACT_NAME:
         type: string
         required: false
         default: build
-      BUILD_ARTIFACT_PATH:
+      ARTIFACT_PATH:
         type: string
         required: false
         default: .
-      BUILD_ARTIFACT_RETENTION:
+      ARTIFACT_RETENTION:
         type: string
         required: false
         default: "1"
@@ -57,7 +64,7 @@ jobs:
         php-version:
         - ${{ inputs.PHP_VERSION }}
         os:
-        - ubuntu-24.04
+        - ${{ inputs.OS_VERSION }}
     steps:
     #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
@@ -87,19 +94,19 @@ jobs:
         --no-interaction
         --no-suggest
         install 
-      working-directory: ${{ inputs.PHP_WORKING_DIR }}
+      working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Build Package
     #-------------------------------------------------------------------------------------------------------------------
     - name: Build PHP Packages
-      run: ${{ inputs.PHP_BUILD_COMMAND }}
-      working-directory: ${{ inputs.PHP_WORKING_DIR }}
+      run: ${{ inputs.PHP_COMMAND }}
+      working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Upload Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.BUILD_ARTIFACT_NAME }}
-        path: ${{ inputs.BUILD_ARTIFACT_PATH }}
-        retention-days: ${{ inputs.BUILD_ARTIFACT_RETENTION }}
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+        retention-days: ${{ inputs.ARTIFACT_RETENTION }}

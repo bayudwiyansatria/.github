@@ -3,8 +3,16 @@ on:
   workflow_call:
     inputs:
       #-----------------------------------------------------------------------------------------------------------------
+      # Usage
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Usage
+      #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
+      OS_VERSION:
+        type: string
+        required: false
+        default: ubuntu-24.04
       JAVA_VERSION:
         type: string
         required: false
@@ -40,26 +48,23 @@ jobs:
         java-version:
         - ${{ inputs.JAVA_VERSION }}
         os:
-        - ubuntu-24.04
+        - ${{ inputs.OS_VERSION }}
     steps:
+    #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------
     - name: Prepare
       uses: actions/checkout@v3
-    # Setup Java
-    - name: Set Up Java
-      uses: actions/setup-java@v4
+    #-------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Configure Java
+      uses: bayudwiyansatria/.github/actions/configure-java@master
       with:
-        java-version: ${{ matrix.java-version }}
-        distribution: adopt
-        cache: maven
-    # Cache Maven
-    - name: Cache Maven Packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
-    # Run Test
+        java-version: ${{ inputs.JAVA_VERSION }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Run Unit Test
+    #-------------------------------------------------------------------------------------------------------------------
     - name: Build Maven Packages
       if: ${{ inputs.MAVEN_SKIP_TEST == false }}
       run: >-
@@ -70,7 +75,9 @@ jobs:
         clean
         test
         package
-    # Only Upload If Workflow Called
+    #-------------------------------------------------------------------------------------------------------------------
+    # Upload Artifact
+    #-------------------------------------------------------------------------------------------------------------------
     - name: Archive Coverage Result
       uses: actions/upload-artifact@v4
       with:

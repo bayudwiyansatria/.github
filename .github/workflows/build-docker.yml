@@ -3,16 +3,16 @@ on:
   workflow_call:
     inputs:
       #-----------------------------------------------------------------------------------------------------------------
-      # Platform
+      # Usage
       #-----------------------------------------------------------------------------------------------------------------
-      DOCKER_VERSION:
+      DOCKER_REPOSITORY:
         type: string
         required: false
-        default: "20.10"
-      DOCKER_BUILD_COMMAND:
+        default: ${{ inputs.DOCKER_REGISTRY }}/${{ github.repository }}
+      DOCKER_COMMAND:
         type: string
         required: false
-        default: docker build
+        default: docker build -t ${{ github.repository }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.DOCKER_WORKING_DIR }}
       DOCKER_WORKING_DIR:
         type: string
         required: false
@@ -21,14 +21,25 @@ on:
         type: string
         required: false
         default: Dockerfile
-      DOCKER_REPOSITORY:
-        type: string
-        required: false
-        default: ${{ github.repository }}
       DOCKER_IMAGE_TAG:
         type: string
         required: false
         default: ${{ github.sha }}
+      DOCKER_PUSH_ENABLED:
+        type: boolean
+        required: false
+        default: false
+      #-----------------------------------------------------------------------------------------------------------------
+      # Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      OS_VERSION:
+        type: string
+        required: false
+        default: ubuntu-24.04
+      DOCKER_VERSION:
+        type: string
+        required: false
+        default: "20.10"
       #-----------------------------------------------------------------------------------------------------------------
       # Registry
       #-----------------------------------------------------------------------------------------------------------------
@@ -39,14 +50,14 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
-      BUILD_ARTIFACT_NAME:
+      ARTIFACT_NAME:
         type: string
         required: false
-        default: target
-      BUILD_ARTIFACT_PATH:
+        default: dist
+      ARTIFACT_PATH:
         type: string
         required: false
-        default: target
+        default: dist
     secrets:
       #-----------------------------------------------------------------------------------------------------------------
       # Registry
@@ -65,7 +76,7 @@ jobs:
     strategy:
       matrix:
         os:
-        - ubuntu-24.04
+        - ${{ inputs.OS_VERSION }}
     steps:
     #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
@@ -78,8 +89,8 @@ jobs:
     - name: Download Artifact
       uses: actions/download-artifact@v4
       with:
-        name: ${{ inputs.BUILD_ARTIFACT_NAME }}
-        path: ${{ inputs.BUILD_ARTIFACT_PATH }}
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
     #-------------------------------------------------------------------------------------------------------------------
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
@@ -100,5 +111,5 @@ jobs:
       with:
         context: ${{ inputs.DOCKER_WORKING_DIR }}
         file: ${{ inputs.DOCKER_FILE }}
-        push: true
+        push: ${{ inputs.DOCKER_PUSH_ENABLED }}
         tags: ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}

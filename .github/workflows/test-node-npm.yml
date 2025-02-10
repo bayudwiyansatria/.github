@@ -3,8 +3,23 @@ on:
   workflow_call:
     inputs:
       #-----------------------------------------------------------------------------------------------------------------
+      # Usage
+      #-----------------------------------------------------------------------------------------------------------------
+      NODE_COMMAND:
+        type: string
+        required: false
+        default: npm run test --if-present
+      WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
+      OS_VERSION:
+        type: string
+        required: false
+        default: ubuntu-24.04
       NODE_VERSION:
         type: string
         required: false
@@ -27,18 +42,15 @@ on:
         type: string
         required: false
         default: lib
-      ARTIFACT_REPOSITORY:
-        type: string
-        required: true
-      ARTIFACT_NAME:
+      TEST_ARTIFACT_NAME:
         type: string
         required: false
         default: coverage
-      ARTIFACT_PATH:
+      TEST_ARTIFACT_PATH:
         type: string
         required: false
         default: dist/coverage
-      ARTIFACT_RETENTION:
+      TEST_ARTIFACT_RETENTION:
         type: string
         required: false
         default: "1"
@@ -65,7 +77,7 @@ jobs:
         node-version:
         - ${{ inputs.NODE_VERSION }}
         os:
-        - ubuntu-24.04
+        - ${{ inputs.OS_VERSION }}
     steps:
     #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
@@ -75,7 +87,7 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     # Download Artifact
     #-------------------------------------------------------------------------------------------------------------------
-    - name: Download Lib
+    - name: Download Build
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.BUILD_ARTIFACT_NAME }}
@@ -94,33 +106,19 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     - name: Installing Node Packages
       run: npm ci
+      working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Run Unit Test
     #-------------------------------------------------------------------------------------------------------------------
     - name: Run Unit Test
-      run: npm run test --if-present
+      run: ${{ inputs.NODE_COMMAND }}
+      working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Upload Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Archive Coverage Result
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.ARTIFACT_NAME }}
-        path: ${{ inputs.ARTIFACT_PATH }}
-        retention-days: ${{ inputs.ARTIFACT_RETENTION }}
-  #---------------------------------------------------------------------------------------------------------------------
-  # Code Analysis
-  #---------------------------------------------------------------------------------------------------------------------
-  code-analysis:
-    name: Code Quality
-    needs: 
-    - test
-    uses: bayudwiyansatria/.github/.github/workflows/code-analysis-codecov.yml@master
-    with:
-      ARTIFACT_REPOSITORY: ${{ inputs.ARTIFACT_REPOSITORY }}
-      ARTIFACT_NAME: ${{ inputs.ARTIFACT_NAME }}
-      ARTIFACT_PATH: ${{ inputs.ARTIFACT_PATH }}
-      ARTIFACT_RETENTION: ${{ inputs.ARTIFACT_RETENTION }}
-      ARTIFACT_FILE: clover.xml
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        name: ${{ inputs.TEST_ARTIFACT_NAME }}
+        path: ${{ inputs.TEST_ARTIFACT_PATH }}
+        retention-days: ${{ inputs.TEST_ARTIFACT_RETENTION }}
