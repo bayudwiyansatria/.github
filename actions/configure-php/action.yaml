@@ -40,5 +40,5 @@ runs:
     uses: actions/cache@v4
     with:
       path: ${{ steps.cache-php.outputs.dir }}
-      key: ${{ steps.cache-php.outputs.key }}
+      key: ${{ runner.os }}-php-${{ hashFiles('**/composer-lock.json') }}
       restore-keys: ${{ runner.os }}-php

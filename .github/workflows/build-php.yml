@@ -42,7 +42,7 @@ on:
       ARTIFACT_PATH:
         type: string
         required: false
-        default: .
+        default: build
       ARTIFACT_RETENTION:
         type: string
         required: false
@@ -92,7 +92,6 @@ jobs:
         composer
         --prefer-dist
         --no-interaction
-        --no-suggest
         install 
       working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------

@@ -9,6 +9,10 @@ on:
         type: string
         required: false
         default: composer run test
+      PHP_BUILD_COMMAND:
+        type: string
+        required: false
+        default: composer run build:ci
       WORKING_DIR:
         type: string
         required: false
@@ -39,10 +43,6 @@ on:
         type: string
         required: false
         default: build
-      TEST_ARTIFACT_REPOSITORY:
-        type: string
-        required: false
-        default: ${{ github.event.repository.name }}
       TEST_ARTIFACT_NAME:
         type: string
         required: false
@@ -102,9 +102,14 @@ jobs:
         composer
         --prefer-dist
         --no-interaction
-        --no-suggest
         install 
-      working-directory: ${{ inputs.BUILD_ARTIFACT_PATH }}
+      working-directory: ${{ inputs.WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Build Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Build PHP Packages
+      run: ${{ inputs.PHP_BUILD_COMMAND }}
+      working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Run Unit Test
     #-------------------------------------------------------------------------------------------------------------------
