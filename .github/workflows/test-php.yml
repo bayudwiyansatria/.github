@@ -8,7 +8,7 @@ on:
       PHP_COMMAND:
         type: string
         required: false
-        default: composer run build
+        default: composer run test
       WORKING_DIR:
         type: string
         required: false
@@ -104,20 +104,13 @@ jobs:
         --no-interaction
         --no-suggest
         install 
-      working-directory: ${{ inputs.WORKING_DIR }}
-    #-------------------------------------------------------------------------------------------------------------------
-    # Download Artifact
-    #-------------------------------------------------------------------------------------------------------------------
-    - name: Download Build
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ inputs.BUILD_ARTIFACT_NAME }}
-        path: ${{ inputs.BUILD_ARTIFACT_PATH }}
+      working-directory: ${{ inputs.BUILD_ARTIFACT_PATH }}
     #-------------------------------------------------------------------------------------------------------------------
     # Run Unit Test
     #-------------------------------------------------------------------------------------------------------------------
     - name: Run Unit Test
-      run: composer run test
+      run: ${{ inputs.PHP_COMMAND }}
+      working-directory: ${{ inputs.BUILD_ARTIFACT_PATH }}
     #-------------------------------------------------------------------------------------------------------------------
     # Upload Artifact
     #-------------------------------------------------------------------------------------------------------------------
