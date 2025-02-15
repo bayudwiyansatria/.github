@@ -22,6 +22,15 @@ runs:
   - name: Set Up Docker
     uses: docker/login-action@v2
     with:
-      registry: ${{ inputs.registry-url }}/${{ inputs.registry-repository }}
+      registry: ${{ inputs.registry-url }}
       username: ${{ env.DOCKER_USERNAME }}
       password: ${{ env.DOCKER_PASSWORD }}
+  #---------------------------------------------------------------------------------------------------------------------
+  # Cache Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Cache Docker
+    uses: actions/cache@v4
+    with:
+      path: ~/.buildx
+      key: ${{ runner.os }}-buildx-${{ github.sha }}
+      restore-keys: ${{ runner.os }}-buildx

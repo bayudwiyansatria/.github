@@ -8,11 +8,7 @@ on:
       DOCKER_REPOSITORY:
         type: string
         required: false
-        default: ${{ inputs.DOCKER_REGISTRY }}/${{ github.repository }}
-      DOCKER_COMMAND:
-        type: string
-        required: false
-        default: docker build -t ${{ github.repository }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.DOCKER_WORKING_DIR }}
+        default: ${{ github.repository }}
       DOCKER_WORKING_DIR:
         type: string
         required: false
@@ -21,6 +17,10 @@ on:
         type: string
         required: false
         default: Dockerfile
+      DOCKER_BUILD_ARG:
+        type: string
+        required: false
+        default: null
       DOCKER_IMAGE_TAG:
         type: string
         required: false
@@ -29,6 +29,10 @@ on:
         type: boolean
         required: false
         default: false
+      DOCKER_SBOM_ENABLED:
+        type: boolean
+        required: false
+        default: true
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
@@ -50,6 +54,10 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
+      ARTIFACT_ENABLED:
+        type: boolean
+        required: false
+        default: true
       ARTIFACT_NAME:
         type: string
         required: false
@@ -87,6 +95,7 @@ jobs:
     # Download Artifacts
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Artifact
+      if: ${{ inputs.ARTIFACT_ENABLED == true }}
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
@@ -107,9 +116,10 @@ jobs:
     # Build Package
     #-------------------------------------------------------------------------------------------------------------------
     - name: Build
-      uses: docker/build-push-action@v6
-      with:
-        context: ${{ inputs.DOCKER_WORKING_DIR }}
-        file: ${{ inputs.DOCKER_FILE }}
-        push: ${{ inputs.DOCKER_PUSH_ENABLED }}
-        tags: ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
+      run: docker build --build-arg ${{ inputs.DOCKER_BUILD_ARG }} -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.DOCKER_WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Push Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Push
+      if: ${{ inputs.DOCKER_PUSH_ENABLED }}
+      run: docker push ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
