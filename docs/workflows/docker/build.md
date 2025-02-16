@@ -19,6 +19,8 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 | `DOCKER_REGISTRY`      | The Docker registry to push the image to.                                | `docker.pkg.github.com`    |
 | `BUILD_ARTIFACT_NAME`  | Name of the build artifact.                                              | `target`                   |
 | `BUILD_ARTIFACT_PATH`  | Path to the build artifact.                                              | `target`                   |
+| `DOCKER_PUSH_ENABLED`  | Whether to push the Docker image to the registry.                        | `true`                     |
+| `ARTIFACT_ENABLED`     | Whether to enable artifact upload.                                       | `false`                    |
 
 ### Secrets
 
@@ -51,7 +53,21 @@ This job handles the process of building and pushing the Docker image.
 ## Example Usage
 
 ```yaml
-
+jobs:
+  docker:
+  name: Build
+  uses: bayudwiyansatria/.github/.github/workflows/build-docker.yml@master
+  with:
+    DOCKER_REGISTRY: docker.io
+    DOCKER_FILE: Dockerfile
+    DOCKER_IMAGE_TAG: latest
+    DOCKER_PUSH_ENABLED: true
+    ARTIFACT_ENABLED: false
+  secrets:
+    DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+    DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 ```
 
 ## Notes
+
+This workflow provides a flexible and customizable way to build and push Docker images using GitHub Actions. Adjust the input parameters and secrets as needed for your specific use case.

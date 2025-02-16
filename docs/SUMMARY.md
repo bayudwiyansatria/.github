@@ -12,7 +12,7 @@
   - [Maven Action Workflow](workflows/maven/README.md)
     - [Build Maven Workflow](workflows/maven/build.md)
     - [Deploy Maven Workflow](workflows/maven/deploy.md)
-    - [Release Notes](workflows/maven/release.md)
+    - [Release Maven Workflow](workflows/maven/release.md)
     - [Test Java Maven Workflow](workflows/maven/test.md)
   - [Node Action Workflow](workflows/nodejs/README.md)
     - [Build Node Workflow](workflows/nodejs/build.md)
