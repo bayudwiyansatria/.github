@@ -5,6 +5,10 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Usage
       #-----------------------------------------------------------------------------------------------------------------
+      DOCKER_COMMAND:
+        type: string
+        required: false
+        default: docker build -t ${{ github.repository }} .
       DOCKER_REPOSITORY:
         type: string
         required: false
@@ -24,10 +28,6 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Common
       #-----------------------------------------------------------------------------------------------------------------
-      DOCKER_COMMAND:
-        type: string
-        required: false
-        default: docker build -t ${{ github.repository }} .
       WORKING_DIR:
         type: string
         required: false

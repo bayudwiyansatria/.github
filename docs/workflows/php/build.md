@@ -8,15 +8,15 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 ### Input Parameters
 
-| Name                       | Type   | Required | Default              | Description                                   |
-| -------------------------- | ------ | -------- | -------------------- | --------------------------------------------- |
-| `NODE_VERSION`             | string | No       | `16`                 | The version of Node.js to use                 |
-| `PHP_VERSION`              | string | No       | `8.4`                | The version of PHP to use                     |
-| `PHP_BUILD_COMMAND`        | string | No       | `composer run build` | The command to build the project              |
-| `PHP_WORKING_DIR`          | string | No       | `.`                  | The working directory for the build command   |
-| `BUILD_ARTIFACT_NAME`      | string | No       | `build`              | The name of the artifact to upload            |
-| `BUILD_ARTIFACT_PATH`      | string | No       | `.`                  | The path to the artifact to upload            |
-| `BUILD_ARTIFACT_RETENTION` | string | No       | `1`                  | The retention period for the artifact in days |
+| Name                 | Type   | Required | Default                                                | Description                                   |
+| -------------------- | ------ | -------- | ------------------------------------------------------ | --------------------------------------------- |
+| `PHP_COMMAND`        | string | No       | `composer run build`                                   | The command to build the project              |
+| `WORKING_DIR`        | string | No       | `.`                                                    | The working directory for the build command   |
+| `OS_VERSION`         | string | No       | The operating system version for the workflow runtime. | `ubuntu-24.04`                                |
+| `PHP_VERSION`        | string | No       | `8.4`                                                  | The version of PHP to use                     |
+| `ARTIFACT_NAME`      | string | No       | `build`                                                | The name of the artifact to upload            |
+| `ARTIFACT_PATH`      | string | No       | `.`                                                    | The path to the artifact to upload            |
+| `ARTIFACT_RETENTION` | string | No       | `1`                                                    | The retention period for the artifact in days |
 
 ### Secrets
 
