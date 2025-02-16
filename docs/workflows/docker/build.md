@@ -1,6 +1,6 @@
 # Docker Build GitHub Action Workflow
 
-This GitHub Action workflow automates the process of building Docker images. It supports customizable configurations for Docker version, build command, registry, and more.
+This GitHub Action workflow automates the process of building Docker images. It supports customizable configurations for docker version, build command, registry, and more.
 
 ## Workflow Configuration
 
@@ -20,7 +20,7 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 | `BUILD_ARTIFACT_NAME`  | Name of the build artifact.                                              | `target`                   |
 | `BUILD_ARTIFACT_PATH`  | Path to the build artifact.                                              | `target`                   |
 | `DOCKER_PUSH_ENABLED`  | Whether to push the Docker image to the registry.                        | `true`                     |
-| `ARTIFACT_ENABLED`     | Whether to enable artifact upload.                                       | `false`                    |
+| `ARTIFACT_ENABLED`     | Whether to enable artifact download.                                     | `false`                    |
 
 ### Secrets
 
@@ -30,8 +30,6 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 | `DOCKER_PASSWORD` | Password for Docker registry authentication. |
 
 ## Jobs
-
-### dockerized
 
 This job handles the process of building and pushing the Docker image.
 
@@ -44,7 +42,9 @@ This job handles the process of building and pushing the Docker image.
 3. **Configure Docker**:
    - Configures Docker using a custom action `bayudwiyansatria/.github/actions/configure-docker@master`.
 4. **Build Package**:
-   - Uses `docker/build-push-action@v6` to build the Docker image and push it to the specified registry with the configured tag.
+   - Build the Docker image with the configured tag.
+5. **Push Package**:
+   - Push the Docker image to the specified registry with the configured tag.
 
 ### Matrix Strategy
 
@@ -71,3 +71,5 @@ jobs:
 ## Notes
 
 This workflow provides a flexible and customizable way to build and push Docker images using GitHub Actions. Adjust the input parameters and secrets as needed for your specific use case.
+
+This workflow contain contextual github variables. Please refer to: [GitHub](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/accessing-contextual-information-about-workflow-runs).
