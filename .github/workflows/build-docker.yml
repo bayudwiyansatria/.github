@@ -9,27 +9,41 @@ on:
         type: string
         required: false
         default: ${{ github.repository }}
-      DOCKER_WORKING_DIR:
-        type: string
-        required: false
-        default: .
       DOCKER_FILE:
         type: string
         required: false
         default: Dockerfile
-      DOCKER_BUILD_ARG:
-        type: string
-        required: false
-        default: null
       DOCKER_IMAGE_TAG:
         type: string
         required: false
         default: ${{ github.sha }}
-      DOCKER_PUSH_ENABLED:
+      DOCKER_BUILD_ARG:
+        type: string
+        required: false
+        default: null
+      #-----------------------------------------------------------------------------------------------------------------
+      # Common
+      #-----------------------------------------------------------------------------------------------------------------
+      DOCKER_COMMAND:
+        type: string
+        required: false
+        default: docker build -t ${{ github.repository }} .
+      WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Features
+      #-----------------------------------------------------------------------------------------------------------------
+      PUSH_ENABLED:
         type: boolean
         required: false
         default: false
-      DOCKER_SBOM_ENABLED:
+      SBOM_ENABLED:
+        type: boolean
+        required: false
+        default: true
+      ARTIFACT_ENABLED:
         type: boolean
         required: false
         default: true
@@ -54,10 +68,6 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
-      ARTIFACT_ENABLED:
-        type: boolean
-        required: false
-        default: true
       ARTIFACT_NAME:
         type: string
         required: false
@@ -115,11 +125,15 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     # Build Package
     #-------------------------------------------------------------------------------------------------------------------
-    - name: Build
-      run: docker build --build-arg ${{ inputs.DOCKER_BUILD_ARG }} -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.DOCKER_WORKING_DIR }}
+    - name: Build Docker with Argument
+      if: ${{ inputs.DOCKER_BUILD_ARG != null }}
+      run: docker build --build-arg ${{ inputs.DOCKER_BUILD_ARG }} -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.WORKING_DIR }}
+    - name: Build Docker
+      if: ${{ inputs.DOCKER_BUILD_ARG == null }}
+      run: docker build -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Push Package
     #-------------------------------------------------------------------------------------------------------------------
-    - name: Push
-      if: ${{ inputs.DOCKER_PUSH_ENABLED }}
+    - name: Push Docker
+      if: ${{ inputs.PUSH_ENABLED }}
       run: docker push ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}

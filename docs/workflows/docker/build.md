@@ -8,26 +8,29 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 ### Input Parameters
 
-| **Parameter**          | **Description**                                                          | **Default Value**          |
-| ---------------------- | ------------------------------------------------------------------------ | -------------------------- |
-| `DOCKER_VERSION`       | Specifies the Docker version to use.                                     | `20.10`                    |
-| `DOCKER_BUILD_COMMAND` | The command used for building the Docker image.                          | `docker build`             |
-| `DOCKER_WORKING_DIR`   | The directory where the Docker context is located.                       | `.`                        |
-| `DOCKER_FILE`          | The Dockerfile to use for building the image.                            | `Dockerfile`               |
-| `DOCKER_REPOSITORY`    | The Docker repository to push the image to. default: `owners/repository` | `${{ github.repository }}` |
-| `DOCKER_IMAGE_TAG`     | The tag for the Docker image. default: `short-sha`                       | `${{ github.sha }}`        |
-| `DOCKER_REGISTRY`      | The Docker registry to push the image to.                                | `docker.pkg.github.com`    |
-| `BUILD_ARTIFACT_NAME`  | Name of the build artifact.                                              | `target`                   |
-| `BUILD_ARTIFACT_PATH`  | Path to the build artifact.                                              | `target`                   |
-| `DOCKER_PUSH_ENABLED`  | Whether to push the Docker image to the registry.                        | `true`                     |
-| `ARTIFACT_ENABLED`     | Whether to enable artifact download.                                     | `false`                    |
+| **Parameter**       | type    | required | **Description**                                                          | **Default Value**                            |
+| ------------------- | ------- | -------- | ------------------------------------------------------------------------ | -------------------------------------------- |
+| `DOCKER_REPOSITORY` | string  | No       | The Docker repository to push the image to. Default: `owners/repository` | `${{ github.repository }}`                   |
+| `DOCKER_FILE`       | string  | No       | The Dockerfile to use for building the image.                            | `Dockerfile`                                 |
+| `DOCKER_IMAGE_TAG`  | string  | No       | The tag for the Docker image. Default: `short-sha`                       | `${{ github.sha }}`                          |
+| `DOCKER_BUILD_ARG`  | string  | No       | Specifies the Docker build argument.                                     | `null`                                       |
+| `DOCKER_COMMAND`    | string  | No       | Not Applicable yet.                                                      | `docker build -t ${{ github.repository }} .` |
+| `WORKING_DIR`       | string  | No       | The directory where the Docker context is located.                       | `.`                                          |
+| `PUSH_ENABLED`      | boolean | No       | Whether to push the Docker image to the registry.                        | `false`                                      |
+| `SBOM_ENABLED`      | boolean | No       | Whether to generate the Docker SBOM (Software Bill of Materials).        | `false`                                      |
+| `ARTIFACT_ENABLED`  | boolean | No       | Whether to enable artifact download.                                     | `false`                                      |
+| `OS_VERSION`        | string  | No       | The operating system version for the workflow runtime.                   | `ubuntu-24.04`                               |
+| `DOCKER_VERSION`    | string  | No       | Specifies the Docker version to use.                                     | `20.10`                                      |
+| `DOCKER_REGISTRY`   | string  | No       | The Docker registry to push the image to.                                | `docker.pkg.github.com`                      |
+| `ARTIFACT_NAME`     | string  | No       | Name of the build artifact.                                              | `target`                                     |
+| `ARTIFACT_PATH`     | string  | No       | Path to the build artifact.                                              | `target`                                     |
 
 ### Secrets
 
-| **Secret**        | **Description**                              |
-| ----------------- | -------------------------------------------- |
-| `DOCKER_USERNAME` | Username for Docker registry authentication. |
-| `DOCKER_PASSWORD` | Password for Docker registry authentication. |
+| **Secret**        | required | **Description**                              |
+| ----------------- | -------- | -------------------------------------------- |
+| `DOCKER_USERNAME` | yes      | Username for Docker registry authentication. |
+| `DOCKER_PASSWORD` | yes      | Password for Docker registry authentication. |
 
 ## Jobs
 
@@ -37,18 +40,18 @@ This job handles the process of building and pushing the Docker image.
 
 1. **Prepare Repository**:
    - Uses `actions/checkout@v3` to checkout the repository.
-2. **Download Artifact**:
+2. **Download Artifact** (optional):
    - Downloads the specified build artifact using `actions/download-artifact@v4`.
 3. **Configure Docker**:
    - Configures Docker using a custom action `bayudwiyansatria/.github/actions/configure-docker@master`.
 4. **Build Package**:
    - Build the Docker image with the configured tag.
-5. **Push Package**:
+5. **Push Package** (optional):
    - Push the Docker image to the specified registry with the configured tag.
 
 ### Matrix Strategy
 
-- Runs on the `ubuntu-24.04` operating system.
+- Runs on the `ubuntu-24.04` operating system. Can be overrided by specify `OS_VERSION`.
 
 ## Example Usage
 

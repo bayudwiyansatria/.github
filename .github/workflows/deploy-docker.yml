@@ -5,18 +5,31 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Usage
       #-----------------------------------------------------------------------------------------------------------------
-      ENVIRONMENT:
+      DOCKER_REPOSITORY:
         type: string
         required: false
-        default: development
-      DOCKER_TAG_ENVIRONMENT_ENABLED:
-          type: boolean
-          required: false
-          default: false
-      DOCKER_TAG_LATEST_ENABLED:
-        type: boolean
+        default: ${{ github.repository }}
+      DOCKER_IMAGE_TAG:
+        type: string
         required: false
-        default: false
+        default: ${{ github.sha }}
+      DOCKER_DEPLOY_TAG:
+        type: string
+        required: false
+      #-----------------------------------------------------------------------------------------------------------------
+      # Common
+      #-----------------------------------------------------------------------------------------------------------------
+      WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Features
+      #-----------------------------------------------------------------------------------------------------------------
+      # DOCKER_TAG_ENVIRONMENT_ENABLED:
+      #   type: boolean
+      #   required: false
+      #   default: false
       DOCKER_TAG_SHORT_SHA_ENABLED:
         type: boolean
         required: false
@@ -25,25 +38,10 @@ on:
         type: boolean
         required: false
         default: false
-      DOCKER_REPOSITORY:
-        type: string
+      DOCKER_TAG_LATEST_ENABLED:
+        type: boolean
         required: false
-        default: ${{ inputs.DOCKER_REGISTRY }}/${{ github.repository }}
-      DOCKER_WORKING_DIR:
-        type: string
-        required: false
-        default: .
-      DOCKER_IMAGE_TAG:
-        type: string
-        required: false
-        default: ${{ github.sha }}
-      DOCKER_TAG_URL:
-        type: string
-        required: false
-        default: docker.pkg.github.com/${{ github.repository }}
-      DOCKER_DEPLOY_TAG:
-        type: string
-        required: false
+        default: false
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
@@ -61,7 +59,7 @@ on:
       DOCKER_REGISTRY:
         type: string
         required: false
-        default: docker.io
+        default: docker.pkg.github.com
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
@@ -79,7 +77,6 @@ jobs:
   #---------------------------------------------------------------------------------------------------------------------
   dockerized:
     name: Dockerized
-    environment: ${{ inputs.ENVIRONMENT }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -106,7 +103,7 @@ jobs:
     - name: Get Short SHA
       id: git-short-sha
       shell: bash
-      working-directory: ${{ inputs.DOCKER_WORKING_DIR }}
+      working-directory: ${{ inputs.WORKING_DIR }}
       run: |
         short=$(git rev-parse --short ${{ github.sha }})
         echo "short_sha=$short" >> $GITHUB_OUTPUT
@@ -116,7 +113,7 @@ jobs:
     - name: Get Branch or Tag Name
       id: git-ref
       shell: bash
-      working-directory: ${{ inputs.DOCKER_WORKING_DIR }}
+      working-directory: ${{ inputs.WORKING_DIR }}
       run: |
         tag=$GITHUB_REF_NAME
         echo "tag=$tag" >> $GITHUB_OUTPUT
@@ -125,37 +122,36 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     - name: Re-tag Artifact
       if: ${{ inputs.DOCKER_DEPLOY_TAG != '' }}
-      working-directory: ${{ inputs.DOCKER_WORKING_DIR }}
+      working-directory: ${{ inputs.WORKING_DIR }}
       run: |
-        docker pull ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }}
-        docker tag ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_DEPLOY_TAG }}
-        docker push ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_DEPLOY_TAG }}
-    - name: Re-tag Artifact with Environment
-      if: ${{ inputs.DOCKER_TAG_ENVIRONMENT_ENABLED == true }}
-      working-directory: ${{ inputs.DOCKER_WORKING_DIR }}
-      run: |
-        docker pull ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }}
-        docker tag ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.ENVIRONMENT }}
-        docker push ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.ENVIRONMENT }}
+        docker pull ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
+        docker tag ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_DEPLOY_TAG }}
+        docker push ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_DEPLOY_TAG }}
+    # - name: Re-tag Artifact with Environment
+    #   if: ${{ inputs.DOCKER_TAG_ENVIRONMENT_ENABLED == true }}
+    #   working-directory: ${{ inputs.WORKING_DIR }}
+    #   run: |
+    #     docker pull ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
+    #     docker tag ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.ENVIRONMENT }}
+    #     docker push ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.ENVIRONMENT }}
     - name: Re-tag Artifact with ShortSHA
       if: ${{ inputs.DOCKER_TAG_SHORT_SHA_ENABLED == true }}
-      working-directory: ${{ inputs.DOCKER_WORKING_DIR }}
+      working-directory: ${{ inputs.WORKING_DIR }}
       run: |
-        docker pull ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }}
-        docker tag ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_TAG_URL }}:${{ steps.git-short-sha.outputs.short_sha }}
-        docker push ${{ inputs.DOCKER_TAG_URL }}:${{ steps.git-short-sha.outputs.short_sha }}
+        docker pull ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
+        docker tag ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ steps.git-short-sha.outputs.short_sha }}
+        docker push ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ steps.git-short-sha.outputs.short_sha }}
     - name: Re-tag Artifact with Ref
       if: ${{ inputs.DOCKER_TAG_REF_ENABLED == true }}
-      working-directory: ${{ inputs.DOCKER_WORKING_DIR }}
+      working-directory: ${{ inputs.WORKING_DIR }}
       run: |
-        docker pull ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }}
-        docker tag ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_TAG_URL }}:${{ steps.git-ref.outputs.tag }}
-        docker push ${{ inputs.DOCKER_TAG_URL }}:${{ steps.git-ref.outputs.tag }}
+        docker pull ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
+        docker tag ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ steps.git-ref.outputs.tag }}
+        docker push ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ steps.git-ref.outputs.tag }}
     - name: Re-tag Artifact with Latest
       if: ${{ inputs.DOCKER_TAG_LATEST_ENABLED == true }}
-      working-directory: ${{ inputs.DOCKER_WORKING_DIR }}
+      working-directory: ${{ inputs.WORKING_DIR }}
       run: |
-        docker pull ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }}
-        docker tag ${{ inputs.DOCKER_TAG_URL }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_TAG_URL }}:latest
-        docker push ${{ inputs.DOCKER_TAG_URL }}:latest
-      
+        docker pull ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
+        docker tag ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:latest
+        docker push ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:latest
