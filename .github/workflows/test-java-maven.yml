@@ -5,7 +5,21 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Usage
       #-----------------------------------------------------------------------------------------------------------------
-      # No Usage
+      MAVEN_COMMAND:
+        type: string
+        required: false
+        default: mvn --no-transfer-progress --file pom.xml clean test package
+      #-----------------------------------------------------------------------------------------------------------------
+      # Common
+      #-----------------------------------------------------------------------------------------------------------------
+      WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Features
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Features
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
@@ -24,10 +38,29 @@ on:
         type: string
         required: false
         default: maven.pkg.github.com
-      MAVEN_SKIP_TEST:
-        type: boolean
+      #-----------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #-----------------------------------------------------------------------------------------------------------------
+      BUILD_ARTIFACT_NAME:
+        type: string
         required: false
-        default: false
+        default: target
+      BUILD_ARTIFACT_PATH:
+        type: string
+        required: false
+        default: target
+      TEST_ARTIFACT_NAME:
+        type: string
+        required: false
+        default: coverage
+      TEST_ARTIFACT_PATH:
+        type: string
+        required: false
+        default: target/site/jacoco
+      TEST_ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: "1"
     secrets:
       #-----------------------------------------------------------------------------------------------------------------
       # Registry
@@ -56,6 +89,14 @@ jobs:
     - name: Prepare
       uses: actions/checkout@v3
     #-------------------------------------------------------------------------------------------------------------------
+    # Download Artifact
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Download Build
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.BUILD_ARTIFACT_NAME }}
+        path: ${{ inputs.BUILD_ARTIFACT_PATH }}
+    #-------------------------------------------------------------------------------------------------------------------
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Configure Java
@@ -66,22 +107,14 @@ jobs:
     # Run Unit Test
     #-------------------------------------------------------------------------------------------------------------------
     - name: Build Maven Packages
-      if: ${{ inputs.MAVEN_SKIP_TEST == false }}
-      run: >-
-        mvn
-        --no-transfer-progress
-        --settings settings.xml
-        --file pom.xml
-        clean
-        test
-        package
+      run: ${{ inputs.MAVEN_COMMAND }}
+      working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Upload Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Archive Coverage Result
       uses: actions/upload-artifact@v4
       with:
-        name: coverage
-        path: ./target/site/jacoco
-        retention-days: 1
-
+        name: ${{ inputs.TEST_ARTIFACT_NAME }}
+        path: ${{ inputs.TEST_ARTIFACT_PATH }}
+        retention-days: ${{ inputs.TEST_ARTIFACT_RETENTION }}

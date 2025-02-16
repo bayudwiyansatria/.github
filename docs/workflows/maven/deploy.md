@@ -8,20 +8,22 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 ### Input Parameters
 
-| Name                | Type   | Required | Default | Description                         |
-| ------------------- | ------ | -------- | ------- | ----------------------------------- |
-| `MAVEN_SETTINGS`    | string | Yes      | N/A     | The path to the Maven settings file |
-| `MAVEN_GOALS`       | string | Yes      | N/A     | The Maven goals to execute          |
-| `MAVEN_OPTIONS`     | string | No       | `-B`    | Additional options for Maven        |
-| `REGISTRY_URL`      | string | Yes      | N/A     | The URL of the Maven registry       |
-| `REGISTRY_USERNAME` | string | Yes      | N/A     | The username for the Maven registry |
-| `REGISTRY_PASSWORD` | string | Yes      | N/A     | The password for the Maven registry |
+| Name             | Type   | Required | Default                                                                     | Description                                 |
+| ---------------- | ------ | -------- | --------------------------------------------------------------------------- | ------------------------------------------- |
+| `MAVEN_COMMAND`  | string | No       | `mvn --batch-mode --no-transfer-progress --file pom.xml deploy -DskipTests` | The command to build the project            |
+| `WORKING_DIR`    | string | No       | `.`                                                                         | The working directory for the build command |
+| `OS_VERSION`     | string | No       | The operating system version for the workflow runtime.                      | `ubuntu-24.04`                              |
+| `JAVA_VERSION`   | string | No       | `11`                                                                        | The version of Java to use                  |
+| `MAVEN_REGISTRY` | string | No       | `maven.pkg.github.com`                                                      | The registry to push packages to            |
+| `ARTIFACT_NAME`  | string | No       | `target`                                                                    | The name of the artifact to download        |
+| `ARTIFACT_PATH`  | string | No       | `target`                                                                    | The path to the artifact to download        |
 
-### Secrets
+## Secrets
 
-| Name                | Required | Description                                    |
-| ------------------- | -------- | ---------------------------------------------- |
-| `REGISTRY_PASSWORD` | Yes      | The password to authenticate with the registry |
+| Name             | Required | Description                                    |
+| ---------------- | -------- | ---------------------------------------------- |
+| `MAVEN_USERNAME` | Yes      | The username to authenticate with the registry |
+| `MAVEN_PASSWORD` | Yes      | The password to authenticate with the registry |
 
 ## Jobs
 

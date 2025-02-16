@@ -8,11 +8,18 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 ### Input Parameters
 
-| Name              | Type    | Required | Default                | Description                |
-| ----------------- | ------- | -------- | ---------------------- | -------------------------- |
-| `JAVA_VERSION`    | string  | No       | `11`                   | The version of Java to use |
-| `MAVEN_REGISTRY`  | string  | No       | `maven.pkg.github.com` | The Maven registry to use  |
-| `MAVEN_SKIP_TEST` | boolean | No       | `false`                | Whether to skip tests      |
+| Name                      | Type   | Required | Default                                                        | Description                                            |
+| ------------------------- | ------ | -------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| `MAVEN_COMMAND`           | string | No       | `mvn --no-transfer-progress --file pom.xml clean test package` | The command to build the project                       |
+| `WORKING_DIR`             | string | No       | `.`                                                            | The working directory for the build command            |
+| `OS_VERSION`              | string | No       | The operating system version for the workflow runtime.         | `ubuntu-24.04`                                         |
+| `JAVA_VERSION`            | string | No       | `11`                                                           | The version of Java to use                             |
+| `MAVEN_REGISTRY`          | string | No       | `maven.pkg.github.com`                                         | The registry to push packages to                       |
+| `BUILD_ARTIFACT_NAME`     | string | No       | `target`                                                       | The name of the build artifact.                        |
+| `BUILD_ARTIFACT_PATH`     | string | No       | `target`                                                       | The path where the build artifact is located.          |
+| `TEST_ARTIFACT_NAME`      | string | No       | `coverage`                                                     | The name of the test artifact (e.g., coverage report). |
+| `TEST_ARTIFACT_PATH`      | string | No       | `target/site/jacoco`                                           | The path to the test artifact.                         |
+| `TEST_ARTIFACT_RETENTION` | string | No       | `1`                                                            | The retention period for test artifacts.               |
 
 ### Secrets
 
