@@ -8,16 +8,16 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 ### Input Parameters
 
-| Name                 | Type   | Required | Default                                                               | Description                                   |
-| -------------------- | ------ | -------- | --------------------------------------------------------------------- | --------------------------------------------- |
-| `MAVEN_COMMAND`      | string | No       | `mvn --no-transfer-progress --file pom.xml clean package -DskipTests` | The command to build the project              |
-| `WORKING_DIR`        | string | No       | `.`                                                                   | The working directory for the build command   |
-| `OS_VERSION`         | string | No       | The operating system version for the workflow runtime.                | `ubuntu-24.04`                                |
-| `JAVA_VERSION`       | string | No       | `11`                                                                  | The version of Java to use                    |
-| `MAVEN_REGISTRY`     | string | No       | `maven.pkg.github.com`                                                | The registry to push packages to              |
-| `ARTIFACT_NAME`      | string | No       | `target`                                                              | The name of the artifact to upload            |
-| `ARTIFACT_PATH`      | string | No       | `target`                                                              | The path to the artifact to upload            |
-| `ARTIFACT_RETENTION` | string | No       | `1`                                                                   | The retention period for the artifact in days |
+| Name                 | Type   | Required | Default                                                               | Description                                            |
+| -------------------- | ------ | -------- | --------------------------------------------------------------------- | ------------------------------------------------------ |
+| `MAVEN_COMMAND`      | string | No       | `mvn --no-transfer-progress --file pom.xml clean package -DskipTests` | The command to build the project                       |
+| `WORKING_DIR`        | string | No       | `.`                                                                   | The working directory for the build command            |
+| `OS_VERSION`         | string | No       | `ubuntu-24.04`                                                        | The operating system version for the workflow runtime. |
+| `JAVA_VERSION`       | string | No       | `11`                                                                  | The version of Java to use                             |
+| `MAVEN_REGISTRY`     | string | No       | `maven.pkg.github.com`                                                | The registry to push packages to                       |
+| `ARTIFACT_NAME`      | string | No       | `target`                                                              | The name of the artifact to upload                     |
+| `ARTIFACT_PATH`      | string | No       | `target`                                                              | The path to the artifact to upload                     |
+| `ARTIFACT_RETENTION` | string | No       | `1`                                                                   | The retention period for the artifact in days          |
 
 ## Secrets
 
@@ -32,10 +32,14 @@ This job handles the process of building maven.
 
 ### Steps
 
-1. **Prepare Repository**: Checks out the repository.
-2. **Setup Platform**: Configures Java using a custom action.
-3. **Build Package**: Builds the Maven project, optionally skipping tests.
-4. **Upload Artifact**: Uploads the built artifact.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checkout the repository.
+2. **Setup Platform**:
+   - Configures Java using a custom action.
+3. **Build Package**:
+   - Builds the Maven project, optionally skipping tests.
+4. **Upload Artifact**:
+   - Uploads the built artifact.
 
 ### Matrix Strategy
 
@@ -44,5 +48,15 @@ This job handles the process of building maven.
 ## Example Usage
 
 ```yaml
-
+build:
+  name: Build
+  uses: bayudwiyansatria/.github/.github/workflows/build-java-maven.yml@master
+  with:
+    JAVA_VERSION: 21
+    MAVEN_SKIP_TEST: true
+  secrets:
+    MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+    MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
 ```
+
+## Notes

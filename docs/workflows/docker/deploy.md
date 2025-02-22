@@ -36,10 +36,16 @@ This job handles the process of deploying the Docker image.
 
 #### Steps
 
-1. **Prepare Repository**: Checks out the repository.
-2. **Login to Registry**: Logs in to the Docker registry.
-3. **Build Docker Image**: Builds the Docker image.
-4. **Push Docker Image**: Pushes the Docker image to the registry.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checkout the repository.
+2. **Login to Registry**:
+   - Logs in to the Docker registry.
+3. **Configure Docker**:
+   - Configures Docker using a custom action `bayudwiyansatria/.github/actions/configure-docker@master`.
+4. **Build Docker Image**:
+   - Build the Docker image with the configured tag.
+5. **Push Docker Image**:
+   - Pushes the Docker image to the registry.
 
 ### Matrix Strategy
 
@@ -48,7 +54,16 @@ This job handles the process of deploying the Docker image.
 ## Example Usage
 
 ```yaml
-
+jobs:
+  docker:
+  name: Build
+  uses: bayudwiyansatria/.github/.github/workflows/deploy-docker.yml@master
+  with:
+    DOCKER_IMAGE_TAG: latest
+    DOCKER_TAG_SHORT_SHA_ENABLED: true
+  secrets:
+    DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+    DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 ```
 
 ## Notes

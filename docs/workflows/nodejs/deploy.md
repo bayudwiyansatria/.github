@@ -29,9 +29,12 @@ This job handles the process of deploy node packages.
 
 ### Steps
 
-1. **Prepare Repository**: Checks out the repository.
-2. **Setup Maven**: Configures Maven using a custom action.
-3. **Deploy Package**: Deploys the Maven package.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checkout the repository.
+2. **Setup Maven**:
+   - Configures Maven using a custom action.
+3. **Deploy Package**:
+   - Deploys the Maven package.
 
 ### Matrix Strategy
 

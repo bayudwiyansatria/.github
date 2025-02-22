@@ -12,7 +12,7 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 | ------------------------- | ------ | -------- | -------------------------------------------------------------- | ------------------------------------------------------ |
 | `MAVEN_COMMAND`           | string | No       | `mvn --no-transfer-progress --file pom.xml clean test package` | The command to build the project                       |
 | `WORKING_DIR`             | string | No       | `.`                                                            | The working directory for the build command            |
-| `OS_VERSION`              | string | No       | The operating system version for the workflow runtime.         | `ubuntu-24.04`                                         |
+| `OS_VERSION`              | string | No       | `ubuntu-24.04`                                                 | The operating system version for the workflow runtime. |
 | `JAVA_VERSION`            | string | No       | `11`                                                           | The version of Java to use                             |
 | `MAVEN_REGISTRY`          | string | No       | `maven.pkg.github.com`                                         | The registry to push packages to                       |
 | `BUILD_ARTIFACT_NAME`     | string | No       | `target`                                                       | The name of the build artifact.                        |
@@ -34,9 +34,12 @@ This job handles the process of test maven packages.
 
 ### Steps
 
-1. **Prepare Repository**: Checks out the repository.
-2. **Setup Java**: Configures Java using a custom action.
-3. **Run Tests**: Executes the Maven test goals.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checkout the repository.
+2. **Setup Java**:
+   - Configures Java using a custom action.
+3. **Run Tests**:
+   - Executes the Maven test goals.
 
 ### Matrix Strategy
 
@@ -45,7 +48,14 @@ This job handles the process of test maven packages.
 ## Example Usage
 
 ```yaml
-
+test:
+  name: Test
+  uses: bayudwiyansatria/.github/.github/workflows/test-java-maven.yml@master
+  with:
+    JAVA_VERSION: 21
+  secrets:
+    MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+    MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
 ```
 
 ## Notes

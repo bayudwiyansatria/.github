@@ -35,13 +35,20 @@ This job runs the PHP tests on the specified operating system and PHP version.
 
 #### Steps:
 
-1. **Prepare Repository**: Checkout the code using `actions/checkout@v3`.
-2. **Download Build Artifact**: Download the build artifact from a previous step using `actions/download-artifact@v4`.
-3. **Setup PHP**: Configure the PHP environment with the specified version using `bayudwiyansatria/.github/actions/configure-php@master`.
-4. **Install PHP Packages**: Install PHP dependencies using Composer (`composer install`).
-5. **Build PHP Packages**: Run the build command (`composer run build:ci`).
-6. **Run Unit Test**: Execute the unit tests using the provided PHP command (`composer run test`).
-7. **Upload Artifact**: Archive the test coverage results as an artifact for later use.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checkout the repository.
+2. **Download Artifact**:
+   - Download the specified build artifact using `actions/download-artifact@v4`.
+3. **Setup PHP**:
+   - Configure the PHP environment with the specified version using `bayudwiyansatria/.github/actions/configure-php@master`.
+4. **Install PHP Packages**:
+   - Install PHP dependencies using Composer (`composer install`).
+5. **Build PHP Packages**:
+   - Run the build command (`composer run build:ci`).
+6. **Run Unit Test**:
+   - Execute the unit tests using the provided PHP command (`composer run test`).
+7. **Upload Artifact**:
+   - Archive the test coverage results as an artifact for later use.
 
 ### Matrix Strategy
 

@@ -8,15 +8,15 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 ### Input Parameters
 
-| Name             | Type   | Required | Default                                                                     | Description                                 |
-| ---------------- | ------ | -------- | --------------------------------------------------------------------------- | ------------------------------------------- |
-| `MAVEN_COMMAND`  | string | No       | `mvn --batch-mode --no-transfer-progress --file pom.xml deploy -DskipTests` | The command to build the project            |
-| `WORKING_DIR`    | string | No       | `.`                                                                         | The working directory for the build command |
-| `OS_VERSION`     | string | No       | The operating system version for the workflow runtime.                      | `ubuntu-24.04`                              |
-| `JAVA_VERSION`   | string | No       | `11`                                                                        | The version of Java to use                  |
-| `MAVEN_REGISTRY` | string | No       | `maven.pkg.github.com`                                                      | The registry to push packages to            |
-| `ARTIFACT_NAME`  | string | No       | `target`                                                                    | The name of the artifact to download        |
-| `ARTIFACT_PATH`  | string | No       | `target`                                                                    | The path to the artifact to download        |
+| Name             | Type   | Required | Default                                                                     | Description                                            |
+| ---------------- | ------ | -------- | --------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `MAVEN_COMMAND`  | string | No       | `mvn --batch-mode --no-transfer-progress --file pom.xml deploy -DskipTests` | The command to build the project                       |
+| `WORKING_DIR`    | string | No       | `.`                                                                         | The working directory for the build command            |
+| `OS_VERSION`     | string | No       | `ubuntu-24.04`                                                              | The operating system version for the workflow runtime. |
+| `JAVA_VERSION`   | string | No       | `11`                                                                        | The version of Java to use                             |
+| `MAVEN_REGISTRY` | string | No       | `maven.pkg.github.com`                                                      | The registry to push packages to                       |
+| `ARTIFACT_NAME`  | string | No       | `target`                                                                    | The name of the artifact to download                   |
+| `ARTIFACT_PATH`  | string | No       | `target`                                                                    | The path to the artifact to download                   |
 
 ## Secrets
 
@@ -31,9 +31,12 @@ This job handles the process of deploy maven packages.
 
 ### Steps
 
-1. **Prepare Repository**: Checks out the repository.
-2. **Setup Maven**: Configures Maven using a custom action.
-3. **Deploy Package**: Deploys the Maven package.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checkout the repository.
+2. **Setup Maven**:
+   - Configures Maven using a custom action.
+3. **Deploy Package**:
+   - Deploys the Maven package.
 
 ### Matrix Strategy
 
@@ -42,7 +45,15 @@ This job handles the process of deploy maven packages.
 ## Example Usage
 
 ```yaml
-
+deploy:
+  name: Deploy
+  uses: bayudwiyansatria/.github/.github/workflows/deploy-java-maven.yml@master
+  with:
+    JAVA_VERSION: 21
+    ENVIRONMENT: development
+  secrets:
+    MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+    MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
 ```
 
 ## Notes

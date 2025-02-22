@@ -10,6 +10,7 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 | Name                 | Type   | Required | Default                      | Description                                   |
 | -------------------- | ------ | -------- | ---------------------------- | --------------------------------------------- |
+| `NODE_COMMAND`       | string | No       | `16`                         | npm run build:docs --if-present               |
 | `NODE_VERSION`       | string | No       | `16`                         | The version of Node.js to use                 |
 | `NODE_BUILD_COMMAND` | string | No       | `npm run build --if-present` | The command to build the project              |
 | `NODE_WORKING_DIR`   | string | No       | `.`                          | The working directory for the build command   |
@@ -30,11 +31,16 @@ This job handles the process of building node.
 
 ### Steps
 
-1. **Prepare Repository**: Checks out the repository.
-2. **Setup Platform**: Configures Node.js using a custom action.
-3. **Installing Package**: Installs the Node.js packages.
-4. **Build Package**: Builds the Node.js project.
-5. **Upload Artifact**: Uploads the built artifact.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checkout the repository.
+2. **Setup Platform**:
+   - Configures Node.js using a custom action.
+3. **Installing Package**:
+   - Installs the Node.js packages.
+4. **Build Package**:
+   - Builds the Node.js project.
+5. **Upload Artifact**:
+   - Uploads the built artifact.
 
 ### Matrix Strategy
 

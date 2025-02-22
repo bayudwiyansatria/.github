@@ -5,7 +5,7 @@
   - [1.0.0](release-notes/1.0.0.md)
 - [Workflows](workflows/README.md)
   - [Docker Action Workflow](workflows/docker/README.md)
-    - [Docker Build GitHub Action Workflow](workflows/docker/build.md)
+    - [Docker Build Workflow](workflows/docker/build.md)
     - [Deploy Docker Workflow](workflows/docker/deploy.md)
   - [.NET Action Workflow](workflows/dotnet/README.md)
     - [Build Dotnet Workflow](workflows/dotnet/build.md)

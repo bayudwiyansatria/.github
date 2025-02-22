@@ -34,12 +34,18 @@ This job handles the process of test node packages.
 
 ### Test
 
-1. **Prepare Repository**: Checks out the repository.
-2. **Setup Node**: Configures Node.js using a custom action.
-3. **Install Dependencies**: Installs the Node.js dependencies.
-4. **Run Tests**: Executes the test command.
-5. **Upload Coverage**: Uploads the test coverage to Codecov.
-6. **Upload Artifact**: Uploads the build and coverage artifacts.
+1. **Prepare Repository**:
+   - Uses `actions/checkout@v3` to checksout the repository.
+2. **Setup Node**:
+   - Configures Node.js using a custom action.
+3. **Install Dependencies**:
+   - Installs the Node.js dependencies.
+4. **Run Tests**:
+   - Executes the test command.
+5. **Upload Coverage**:
+   - Uploads the test coverage to Codecov.
+6. **Upload Artifact**:
+   - Uploads the build and coverage artifacts.
 
 ### Matrix Strategy
 

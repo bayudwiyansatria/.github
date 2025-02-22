@@ -9,6 +9,10 @@ on:
         type: string
         required: false
         default: npm run build:docs --if-present
+      NODE_FILE:
+        type: string
+        required: false
+        default: package.json
       WORKING_DIR:
         type: string
         required: false
