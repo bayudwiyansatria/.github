@@ -6,6 +6,7 @@
 # User-specific directory
 .fleet
 _book/
+assets/
 
 # User-specific files
 *.suo

@@ -2,6 +2,9 @@ name: Release Dispatcher
 on:
   workflow_dispatch:
     inputs:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Version
+      #-----------------------------------------------------------------------------------------------------------------
       MAJOR_VERSION:
         type: number
         description: 'Major Version'
@@ -17,16 +20,45 @@ on:
         description: 'Patch Version'
         required: true
         default: 0
+env:
+  tag_name: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
 jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps: 
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup
+      run: mkdir -p assets && cp -r docs assets && cp -r .github/workflows assets
+    - name: Package
+      run: zip -r assets.zip assets
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: assets
+        path: assets
+        retention-days: 1
+    - name: Configure Git
+      uses: bayudwiyansatria/.github/actions/git-configure@master
+    - name: Tag Git
+      uses: bayudwiyansatria/.github/actions/git-tag@master
+      with:
+        tag: ${{ env.tag_name }}
+        git-token: ${{ secrets.GITHUB_TOKEN }}
   release:
     name: Publish
+    needs: 
+    - build
     uses: bayudwiyansatria/.github/.github/workflows/release-github.yml@master
     with:
       MAJOR_VERSION: ${{ inputs.MAJOR_VERSION }}
-      MINOR_VERSION: ${{ inputs.MAJOR_VERSION }}
-      INCREMENTAL_VERSION: ${{ inputs.MAJOR_VERSION }}
+      MINOR_VERSION: ${{ inputs.MINOR_VERSION }}
+      INCREMENTAL_VERSION: ${{ inputs.INCREMENTAL_VERSION }}
       ENVIRONMENT: production
-      ARTIFACT_NAME: github
-      ARTIFACT_PATH: .github/workflows
+      ARTIFACT_NAME: assets
+      ARTIFACT_PATH: assets
+      ARTIFACT_PACKAGES_TYPE: docs/book.json
+      ARTIFACT_ASSET: actions
     secrets:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
