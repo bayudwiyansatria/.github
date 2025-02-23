@@ -3,6 +3,7 @@
 - [Custom GitHub Actions Workflow Overview](README.md)
 - [Release Notes](release-notes/README.md)
   - [1.0.0](release-notes/1.0.0.md)
+  - [1.0.1](release-notes/1.0.1.md)
 - [Workflows](workflows/README.md)
   - [Docker Action Workflow](workflows/docker/README.md)
     - [Docker Build Workflow](workflows/docker/build.md)
