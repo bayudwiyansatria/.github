@@ -50,7 +50,7 @@ jobs:
     # Distribute Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: SSH Deployment
-      uses: appleboy/ssh-action@v1.2.0
+      uses: appleboy/ssh-action@v1.2.1
       with:
         host: ${{ inputs.SSH_HOST }}
         username: ${{ secrets.USERNAME }}
