@@ -71,7 +71,7 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Setup Pages
-      uses: actions/configure-pages@v2
+      uses: actions/configure-pages@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     - name: Upload Pages Artifact
