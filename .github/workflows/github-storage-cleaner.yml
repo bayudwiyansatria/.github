@@ -16,7 +16,9 @@ jobs:
     strategy:
       matrix:
         os:
-        - ${{ inputs.OS_VERSION }}
+        - ${{ inputs.OS_VERSION }}    
+    permissions:
+      actions: write
     timeout-minutes: 10
     steps:
     - name: Remove old artifacts
