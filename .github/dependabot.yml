@@ -6,9 +6,6 @@
 version: 2
 updates:
 - package-ecosystem: "github-actions"
-  commit-message:
-    prefix: "[ci skip]"
-    include: scope
   reviewers:
   - bayudwiyansatria
   directory: "/"
