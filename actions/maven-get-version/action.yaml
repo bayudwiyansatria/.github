@@ -5,8 +5,16 @@ inputs:
     description: "Java Version"
     required: false
     default: 17.0.10
+  checkout:
+    description: "Checkout Repository"
+    required: false
+    default: "true"
+  configure-java:
+    description: "Configure Java"
+    required: false
+    default: "true"
 outputs:
-  versions:
+  version:
     description: "Maven Get Version"
     value: ${{ steps.versions.outputs.version }}
 runs:
@@ -15,12 +23,14 @@ runs:
   #---------------------------------------------------------------------------------------------------------------------
   # Prepare Repository
   #---------------------------------------------------------------------------------------------------------------------
-  - name: Prepare
+  - if: ${{ inputs.checkout == 'true' }}
+    name: Prepare
     uses: actions/checkout@v3
   #---------------------------------------------------------------------------------------------------------------------
   # Setup Platform
   #---------------------------------------------------------------------------------------------------------------------
-  - name: Configure Java
+  - if: ${{ inputs.checkout == 'true' }}
+    name: Configure Java
     uses: bayudwiyansatria/.github/actions/configure-java@master
     with:
       java-version: ${{ inputs.java-version }}
