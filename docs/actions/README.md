@@ -10,6 +10,7 @@ This directory contains documentation for custom GitHub Actions used in this rep
 - [Configure Maven Action](configure-maven.md)
 - [Configure Git Action](configure-git.md)
 - [Git Tag Action](git-tag.md)
+- [Maven Get Version Action](maven-get-version.md)
 
 Each action is documented with its configuration, inputs, outputs, and example usage.
 
@@ -36,3 +37,7 @@ The Configure Git Action sets up Git with the specified configuration.
 ### Git Tag Action
 
 The Git Tag Action creates a Git tag with the specified name and configuration.
+
+### Maven Get Version Action
+
+The Maven Get Version Action retrieves the version of a Maven project from the `pom.xml` file.
