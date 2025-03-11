@@ -28,7 +28,7 @@ The workflow is triggered manually using the `workflow_call` event, allowing for
 
 ## Jobs
 
-This job handles the process of building maven.
+This job handles the process of building Maven projects.
 
 ### Steps
 
@@ -58,5 +58,3 @@ build:
     MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
     MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
 ```
-
-## Notes
