@@ -1,0 +1,52 @@
+name: "Maven Get Version"
+description: "Maven Get Version"
+inputs:
+  java-version:
+    description: "Java Version"
+    required: false
+    default: 17.0.10
+  checkout:
+    description: "Checkout Repository"
+    required: false
+    default: "true"
+  configure-java:
+    description: "Configure Java"
+    required: false
+    default: "true"
+outputs:
+  version:
+    description: "Maven Get Version"
+    value: ${{ steps.versions.outputs.version }}
+runs:
+  using: "composite"
+  steps:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Prepare Repository
+  #---------------------------------------------------------------------------------------------------------------------
+  - if: ${{ inputs.checkout == 'true' }}
+    name: Prepare
+    uses: actions/checkout@v4
+  #---------------------------------------------------------------------------------------------------------------------
+  # Setup Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - if: ${{ inputs.checkout == 'true' }}
+    name: Configure Java
+    uses: bayudwiyansatria/.github/actions/configure-java@master
+    with:
+      java-version: ${{ inputs.java-version }}
+  #---------------------------------------------------------------------------------------------------------------------
+  # Task
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Prepare Deployment
+    id: prepare
+    shell: bash
+    working-directory: .
+    run: >-
+      mvn
+      --no-transfer-progress
+      build-helper:parse-version
+      versions:set -DnewVersion=\${{ env.tag_name }}
+      versions:commit
+    env:
+      MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+      MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
