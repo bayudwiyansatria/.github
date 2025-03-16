@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: "Github CodeQL"
 on:
   workflow_call:
     inputs:

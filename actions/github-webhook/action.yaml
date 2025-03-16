@@ -1,0 +1,36 @@
+name: "Setup Github Webhook"
+description: "Setup Github Webhook"
+inputs:
+  repository:
+    description: "Repository Owner"
+    required: true
+  repository-event:
+    description: "Repository Event"
+    required: false
+    default: "push, pull_request"
+  webhook-url:
+    description: "Webhook URL e.g. Slack Webhook URL"
+    required: true
+runs:
+  using: "composite"
+  steps:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Setup Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Create GitHub Webhook
+    shell: bash
+    working-directory: .
+    env:
+      GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
+    run: |
+      curl -X POST \
+        -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d '{
+              "config": {
+                "url": "'"${{ inputs.webhook-url }}"'",
+                "content_type": "json"
+              },
+              "events": ["'"${{ inputs.repository-event }}"'"]
+            }' \
+        https://api.github.com/repos/${{ inputs.repository }}/hooks
