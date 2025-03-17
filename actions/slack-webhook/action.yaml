@@ -1,0 +1,24 @@
+name: "Send Slack Notification"
+description: "This action sends a notification to Slack"
+inputs:
+  slack_webhook_url:
+    description: "The Slack Incoming Webhook URL"
+    required: true
+runs:
+  using: "composite"
+  steps:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Setup Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Send Notification to Slack
+    uses: slackapi/slack-github-action@v2.0.0
+    with:
+      webhook: ${{ inputs.slack_webhook_url }}
+      webhook-type: incoming-webhook
+      payload: |
+        text: "*GitHub Action build result*: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+        blocks:
+          - type: "section"
+            text:
+              type: "mrkdwn"
+              text: "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
