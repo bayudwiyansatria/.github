@@ -16,7 +16,7 @@ runs:
   # Setup Platform
   #---------------------------------------------------------------------------------------------------------------------
   - name: Set Up Node
-    uses: actions/setup-node@v3
+    uses: actions/setup-node@v4
     with:
       node-version: ${{ inputs.node-version }}
       registry-url: ${{ inputs.registry-url }}
@@ -24,7 +24,7 @@ runs:
       always-auth: true
       check-latest: false
     env:
-      NODE_AUTH_TOKEN: ${{ env.NPM_AUTH_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ env.NODE_AUTH_TOKEN }}
   #---------------------------------------------------------------------------------------------------------------------
   # Cache Platform
   #---------------------------------------------------------------------------------------------------------------------

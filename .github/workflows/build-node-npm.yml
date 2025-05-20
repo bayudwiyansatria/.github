@@ -85,6 +85,7 @@ jobs:
       uses: bayudwiyansatria/.github/actions/configure-node@master
       with:
         node-version: ${{ inputs.NODE_VERSION }}
+        registry-url: ${{ inputs.NPM_REGISTRY }}
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
     #-------------------------------------------------------------------------------------------------------------------
