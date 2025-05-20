@@ -9,6 +9,10 @@ on:
         type: string
         required: false
         default: development
+      WRANGLER_COMMAND:
+        type: string
+        required: false
+        default: deploy lib/worker.mjs --name ${{ github.event.repository.name }}
       #-----------------------------------------------------------------------------------------------------------------
       # Common
       #-----------------------------------------------------------------------------------------------------------------
@@ -27,6 +31,10 @@ on:
         type: string
         required: false
         default: ubuntu-24.04
+      WRANGLER_VERSION:
+        type: string
+        required: false
+        default: "3.91.0"
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
@@ -42,6 +50,8 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
+      CLOUDFLARE_ACCOUNT_ID:
+        required: true
       CLOUDFLARE_API_TOKEN:
         required: true
 permissions:
@@ -69,6 +79,10 @@ jobs:
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
+    - name: Get Compatibility
+      id: compatibility
+      run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Publish Package
     #-------------------------------------------------------------------------------------------------------------------
@@ -76,4 +90,7 @@ jobs:
       id: webapp
       uses: cloudflare/wrangler-action@v3
       with:
+        wranglerVersion: ${{ inputs.WRANGLER_VERSION}}
         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        command: ${{ inputs.WRANGLER_COMMAND }} --compatibility-date ${{ steps.compatibility.outputs.date }}
