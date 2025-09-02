@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps: 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Setup
       run: mkdir -p assets && cp -r docs assets && cp -r .github/workflows assets
     - name: Package
