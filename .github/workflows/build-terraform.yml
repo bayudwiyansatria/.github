@@ -1,0 +1,138 @@
+name: Build Terraform
+on:
+  workflow_call:
+    inputs:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Usage
+      #-----------------------------------------------------------------------------------------------------------------
+      TERRAFORM_COMMAND:
+        type: string
+        required: false
+        default: terraform tfplan
+      #-----------------------------------------------------------------------------------------------------------------
+      # Common
+      #-----------------------------------------------------------------------------------------------------------------
+      WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Features
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Features
+      #-----------------------------------------------------------------------------------------------------------------
+      # Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      OS_VERSION:
+        type: string
+        required: false
+        default: ubuntu-24.04
+      TERRAFORM_VERSION:
+        type: string
+        required: false
+        default: "1.14.6"
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: tfplan
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: tfplan
+      ARTIFACT_RETENTION:
+        type: string
+        required: false
+        default: "1"
+    secrets:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # Terraform Cloud 
+      TFE_TOKEN: 
+        required: false
+      # Azure Credentials
+      ARM_CLIENT_ID: 
+        required: false
+      ARM_CLIENT_SECRET: 
+        required: false
+      ARM_TENANT_ID: 
+        required: false
+      ARM_SUBSCRIPTION_ID: 
+        required: false
+      # AWS Credentials
+      AWS_ACCESS_KEY_ID: 
+        required: false
+      AWS_SECRET_ACCESS_KEY: 
+        required: false
+      AWS_REGION: 
+        required: false
+      # GCP Credentials
+      GCP_CREDENTIALS: 
+        required: false
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Build
+  #---------------------------------------------------------------------------------------------------------------------
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+        - ${{ inputs.OS_VERSION }}
+    env:
+      # Shared
+      TFE_TOKEN: ${{ secrets.tfe_token }}
+
+      # Azure Credentials
+      ARM_CLIENT_ID: ${{ secrets.azure_client_id }}
+      ARM_CLIENT_SECRET: ${{ secrets.azure_client_secret }}
+      ARM_TENANT_ID: ${{ secrets.azure_tenant_id }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.azure_subscription_id }}
+      
+      # AWS Credentials
+      AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
+      AWS_DEFAULT_REGION: ${{ secrets.aws_region }}
+
+      # GCP Credentials
+      GCP_CREDENTIALS: ${{ secrets.gcp_credentials }}
+    steps:
+    #-------------------------------------------------------------------------------------------------------------------
+    # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Prepare
+      uses: actions/checkout@v4
+    #-------------------------------------------------------------------------------------------------------------------
+    # Setup Platform
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Set up Terraform
+      uses: bayudwiyansatria/.github/actions/configure-terraform@master
+      with:
+        terraform-version: ${{ inputs.TERRAFORM_VERSION }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Installing Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Installing Terraform Packages
+      run: terraform init
+      working-directory: ${{ inputs.WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Build Package
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Build Terraform Packages
+      run: ${{ inputs.TERRAFORM_COMMAND }} --out=${{ inputs.ARTIFACT_PATH }}
+      working-directory: ${{ inputs.WORKING_DIR }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Upload Artifact
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+        retention-days: ${{ inputs.ARTIFACT_RETENTION }}

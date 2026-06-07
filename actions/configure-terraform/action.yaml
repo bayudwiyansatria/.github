@@ -1,0 +1,28 @@
+name: "Terraform Configure"
+description: "Configure Terraform for Terraform Operations"
+inputs:
+  terraform-version:
+    description: "Terraform Version"
+    required: false
+    default: 1.14.6
+runs:
+  using: "composite"
+  steps:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Setup Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Set Up Terraform
+    uses: hashicorp/setup-terraform@v4 
+    with:
+      terraform_version: ${{ inputs.terraform-version }}
+    env:
+      TF_CLI_CONFIG_FILE: ${{ env.TF_CLI_CONFIG_FILE }}
+  #---------------------------------------------------------------------------------------------------------------------
+  # Cache Platform
+  #---------------------------------------------------------------------------------------------------------------------
+  - name: Cache Terraform
+    uses: actions/cache@v4
+    with:
+      path: ~/.terraform.d
+      key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}
+      restore-keys: ${{ runner.os }}-terraform
