@@ -125,7 +125,7 @@ jobs:
     # Build Package
     #-------------------------------------------------------------------------------------------------------------------
     - name: Build Terraform Packages
-      run: ${{ inputs.TERRAFORM_COMMAND }} --out=${{ inputs.ARTIFACT_PATH }}
+      run: ${{ inputs.TERRAFORM_COMMAND }} -out=${{ inputs.ARTIFACT_PATH }}
       working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Upload Artifact
