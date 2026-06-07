@@ -8,7 +8,7 @@ on:
       TERRAFORM_COMMAND:
         type: string
         required: false
-        default: terraform apply tfplan -auto-approve
+        default: terraform apply -auto-approve
       #-----------------------------------------------------------------------------------------------------------------
       # Common
       #-----------------------------------------------------------------------------------------------------------------
@@ -112,6 +112,7 @@ jobs:
     # Download Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Artifacts
+      continue-on-error: true
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
