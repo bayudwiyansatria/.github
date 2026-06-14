@@ -1,4 +1,6 @@
 # User-specific directory
+.github/
+actions/
 
 # User-specific files
 **/*.yml
