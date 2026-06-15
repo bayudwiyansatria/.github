@@ -118,7 +118,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
-        path: ${{ inputs.WORKING_DIR }}/${{ inputs.ARTIFACT_PATH }}
+        path: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
