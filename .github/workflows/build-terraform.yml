@@ -132,7 +132,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.TFVARS_NAME }}
-        path:  ${{ inputs.WORKING_DIR }}/${{ inputs.TFVARS_FILE }}
+        path:  ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Installing Package
     #------------------------------------------------------------------------------------------------------------------- 
