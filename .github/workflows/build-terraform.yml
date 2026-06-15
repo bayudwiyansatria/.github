@@ -19,14 +19,14 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Features
       #-----------------------------------------------------------------------------------------------------------------
+      TFVARS_NAME:
+        type: string
+        required: false
+        default: templates
       TFVARS_FILE:
         type: string
         required: false
         default: variables.tfvars
-      TFVARS_TEMPLATE:
-        type: string
-        required: false
-        default: ""
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
@@ -125,13 +125,17 @@ jobs:
       with:
         terraform-version: ${{ inputs.TERRAFORM_VERSION }}
     #-------------------------------------------------------------------------------------------------------------------
-    # Installing Package
+    # Download Artifact
     #-------------------------------------------------------------------------------------------------------------------
-    - name: Generate tfvars File
-      env:
-        TFVARS_DATA: ${{ inputs.TFVARS_TEMPLATE }}
-      run: |
-        echo "$TFVARS_DATA" > ${{ inputs.TFVARS_FILE }}
+    - name: Download Artifacts
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.TFVARS_NAME }}
+        path:  ${{ inputs.WORKING_DIR }}/${{ inputs.TFVARS_FILE }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Installing Package
+    #------------------------------------------------------------------------------------------------------------------- 
     - name: Installing Terraform Packages
       run: terraform init
       working-directory: ${{ inputs.WORKING_DIR }}
