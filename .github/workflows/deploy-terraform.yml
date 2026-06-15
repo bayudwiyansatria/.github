@@ -43,7 +43,7 @@ on:
       ARTIFACT_PATH:
         type: string
         required: false
-        default: tfplan
+        default: out.tfplan
       ARTIFACT_RETENTION:
         type: string
         required: false
