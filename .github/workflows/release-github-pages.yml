@@ -58,12 +58,12 @@ jobs:
     # Prepare Repository
     #-------------------------------------------------------------------------------------------------------------------
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     #-------------------------------------------------------------------------------------------------------------------
     # Download Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
@@ -71,17 +71,18 @@ jobs:
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Setup Pages
-      uses: actions/configure-pages@v5
+      uses: actions/configure-pages@v6
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     - name: Upload Pages Artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@v5
       with:
         path: ${{ inputs.ARTIFACT_ROOT }}
+        include-hidden-files: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
     - name: Deploy GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v4
+      uses: actions/deploy-pages@v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PAT }}
