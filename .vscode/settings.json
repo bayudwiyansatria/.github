@@ -1,0 +1,32 @@
+{
+  // This repository keeps block sequences flush with their parent key:
+  //
+  //   os:
+  //   - ${{ inputs.OS_VERSION }}
+  //
+  // Both YAML formatters available here (Prettier and redhat.vscode-yaml, which
+  // bundles Prettier's YAML printer) always indent the "- " and expose no option
+  // to disable it. There is no formatter setting that produces this style, so
+  // format-on-save is turned off for YAML in this workspace instead.
+  //
+  // ".github/workflows/*.yml" is language "github-actions-workflow", not "yaml",
+  // and it does NOT honour .prettierignore -- it must be disabled separately.
+  "[yaml]": {
+    "editor.formatOnSave": false
+  },
+  "[github-actions-workflow]": {
+    "editor.formatOnSave": false
+  },
+  "[dockercompose]": {
+    "editor.formatOnSave": false
+  },
+  "yaml.format.enable": false,
+
+  // EditorConfig is not read natively by VS Code, so mirror .editorconfig here.
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.encoding": "utf8",
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "editor.rulers": [120]
+}

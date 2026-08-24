@@ -1,0 +1,11 @@
+# https://github.com/google/yamlfmt
+formatter:
+  type: basic
+  indent: 2
+  # Keep "- " flush with its parent key instead of indenting block sequences.
+  indentless_arrays: true
+  # Preserve the banner comment blocks and blank-line layout as written.
+  retain_line_breaks_single: true
+  # Do not re-wrap or re-quote scalars.
+  max_line_length: 0
+  eof_newline: true

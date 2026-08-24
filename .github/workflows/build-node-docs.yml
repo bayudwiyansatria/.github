@@ -108,7 +108,7 @@ jobs:
       run: ${{ inputs.NODE_COMMAND }}
       working-directory: ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
-    # Upload Artifac
+    # Upload Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Upload Artifact
       uses: actions/upload-artifact@v4

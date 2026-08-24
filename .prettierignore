@@ -1,7 +1,16 @@
-# User-specific directory
-.github/
-actions/
+# Dependencies
+node_modules/
 
-# User-specific files
+# Build output
+_book/
+assets/
+
+# Licence and notices are kept verbatim
+LICENSE
+NOTICE
+
+# YAML is formatted by yamlfmt, not Prettier.
+# Prettier always indents block sequences and offers no option to disable it,
+# which conflicts with the flush "- " style used throughout this repository.
 **/*.yml
 **/*.yaml
