@@ -32,6 +32,7 @@
     - [Test PHP Workflow](workflows/php/test.md)
   - [Code Quality Workflows](workflows/code-quality/README.md)
     - [Code Analysis with Codecov](workflows/code-quality/code-analysis-codecov.md)
+    - [Code Analysis with Secret Detection](workflows/code-quality/code-analysis-secret.md)
   - [GitHub Workflows](workflows/github/README.md)
     - [GitHub CodeQL Workflow](workflows/github/github-codeql.md)
     - [Release GitHub Pages Workflow](workflows/github/release-github-pages.md)
