@@ -115,14 +115,14 @@ jobs:
     # Prepare Repository
     #-------------------------------------------------------------------------------------------------------------------
     - name: Prepare
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         ref: ${{ env.tag_name }}
     #-------------------------------------------------------------------------------------------------------------------
     # Download Artifact Build
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Assets
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
         path: ${{ inputs.ARTIFACT_PATH }}
@@ -131,7 +131,7 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Coverage
       if: ${{ inputs.COVERAGE_ENABLED == true }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: ${{ inputs.COVERAGE_NAME }}
         path: assets/coverage
@@ -140,7 +140,7 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Documentation
       if: ${{ inputs.DOCS_ENABLED == true }}
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: ${{ inputs.DOCS_NAME }}
         path: assets/docs

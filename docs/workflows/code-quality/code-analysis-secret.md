@@ -35,10 +35,11 @@ This workflow requires no secrets. It authenticates to the GitHub API with the a
 
 The job requests the following permissions:
 
-| Permission        | Access  | Purpose                                           |
-| ----------------- | ------- | ------------------------------------------------- |
-| `contents`        | `read`  | Checks out the repository being scanned.          |
-| `security-events` | `write` | Uploads the SARIF report to GitHub code scanning. |
+| Permission        | Access  | Purpose                                                                     |
+| ----------------- | ------- | --------------------------------------------------------------------------- |
+| `contents`        | `read`  | Checks out the repository being scanned.                                    |
+| `actions`         | `read`  | Reads the workflow run metadata that the SARIF upload attaches findings to. |
+| `security-events` | `write` | Uploads the SARIF report to GitHub code scanning.                           |
 
 > Code scanning uploads require a public repository or GitHub Advanced Security. Set `SARIF_ENABLED: false` when neither applies.
 
@@ -52,7 +53,7 @@ The job requests the following permissions:
 #### Steps:
 
 1. **Prepare Repository**
-   - **Action**: `actions/checkout@v4`
+   - **Action**: `actions/checkout@v7`
    - **Purpose**: Checks out the repository at the depth defined by `FETCH_DEPTH`.
 
 2. **Setup Gitleaks**
@@ -65,11 +66,11 @@ The job requests the following permissions:
    - **Purpose**: Renders the findings as a table in the GitHub job summary.
 
 5. **Upload Analysis Result**
-   - **Action**: `github/codeql-action/upload-sarif@v3`
+   - **Action**: `github/codeql-action/upload-sarif@v4`
    - **Purpose**: Publishes the report to the repository's code scanning alerts under the `secret-detection` category.
 
 6. **Upload Artifact**
-   - **Action**: `actions/upload-artifact@v4`
+   - **Action**: `actions/upload-artifact@v7`
    - **Purpose**: Uploads the SARIF report using the `ARTIFACT_NAME` and `ARTIFACT_RETENTION` inputs.
 
 7. **Verify Secret Detection**
@@ -128,3 +129,27 @@ A detection means the credential is in the repository, and rewriting history doe
 2. Move the value into GitHub Actions secrets or another secret manager.
 3. Remove the value from the code and, where required, from the commit history.
 4. Record an accepted finding in a Gitleaks baseline or `.gitleaksignore` so it stops failing the build.
+
+### Recording a False Positive
+
+Test fixtures and documentation examples can match a rule without being a credential. Scope the exception to the value
+in a `gitleaks.toml` passed through `GITLEAKS_CONFIG`:
+
+```toml
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Why this value is not a credential."
+regexes = ['''^the-exact-literal$''']
+```
+
+Two behaviours are worth knowing before writing one:
+
+- A `paths` allowlist switches off **every** rule for the files it matches, so allowlisting a test directory hides a
+  real credential committed there later. Match on the value instead.
+- `targetRules` is silently ignored when the allowlist is combined with `[extend] useDefault = true`, because the
+  bundled rules are not yet loaded when it resolves. The finding is still reported and no warning is emitted.
+
+A `.gitleaksignore` entry is the alternative, but its fingerprint embeds the line number
+(`path/to/file.ts:rule-id:49`), so it stops matching as soon as the file shifts.

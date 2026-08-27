@@ -36,6 +36,6 @@ runs:
   # Setup Platform
   #---------------------------------------------------------------------------------------------------------------------
   - name: Set Up Dotnet
-    uses: actions/setup-dotnet@v3
+    uses: actions/setup-dotnet@v6
     with:
       dotnet-version: ${{ inputs.dotnet-version }}

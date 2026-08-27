@@ -52,7 +52,7 @@ runs:
   # Cache Platform
   #---------------------------------------------------------------------------------------------------------------------
   - name: Cache Docker
-    uses: actions/cache@v4
+    uses: actions/cache@v6
     with:
       path: ~/.buildx
       key: ${{ runner.os }}-buildx-${{ github.sha }}

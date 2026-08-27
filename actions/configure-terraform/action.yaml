@@ -45,7 +45,7 @@ runs:
   # Cache Platform
   #---------------------------------------------------------------------------------------------------------------------
   - name: Cache Terraform
-    uses: actions/cache@v4
+    uses: actions/cache@v6
     with:
       path: ~/.terraform.d
       key: ${{ runner.os }}-terraform-${{ hashFiles('**/.terraform.lock.hcl') }}

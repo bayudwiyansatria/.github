@@ -87,12 +87,12 @@ jobs:
     # Prepare Repository
     #-------------------------------------------------------------------------------------------------------------------
     - name: Prepare
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     #-------------------------------------------------------------------------------------------------------------------
     # Download Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Build
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: ${{ inputs.BUILD_ARTIFACT_NAME }}
         path: ${{ inputs.BUILD_ARTIFACT_PATH }}
@@ -113,7 +113,7 @@ jobs:
     # Upload Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Archive Coverage Result
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ inputs.TEST_ARTIFACT_NAME }}
         path: ${{ inputs.TEST_ARTIFACT_PATH }}

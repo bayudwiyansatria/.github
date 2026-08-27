@@ -61,7 +61,7 @@ runs:
       extensions: ${{ inputs.php-extensions }}
       key: ${{ runner.os }}-php-${{ hashFiles('**/composer-lock.json') }}
   - name: Cache PHP Modules
-    uses: actions/cache@v4
+    uses: actions/cache@v6
     with:
       path: ${{ steps.cache-php.outputs.dir }}
       key: ${{ runner.os }}-php-${{ hashFiles('**/composer-lock.json') }}

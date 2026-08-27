@@ -39,12 +39,11 @@ runs:
   # Setup Platform
   #---------------------------------------------------------------------------------------------------------------------
   - name: Set Up Node
-    uses: actions/setup-node@v4
+    uses: actions/setup-node@v7
     with:
       node-version: ${{ inputs.node-version }}
       registry-url: ${{ inputs.registry-url }}
       cache: npm
-      always-auth: true
       check-latest: false
     env:
       NODE_AUTH_TOKEN: ${{ env.NODE_AUTH_TOKEN }}
@@ -52,7 +51,7 @@ runs:
   # Cache Platform
   #---------------------------------------------------------------------------------------------------------------------
   - name: Cache NPM Modules
-    uses: actions/cache@v4
+    uses: actions/cache@v6
     with:
       path: ~/.npm
       key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
