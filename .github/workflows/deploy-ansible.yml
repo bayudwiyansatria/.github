@@ -1,0 +1,178 @@
+name: Deploy Ansible
+on:
+  workflow_call:
+    inputs:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Usage
+      #-----------------------------------------------------------------------------------------------------------------
+      ANSIBLE_COMMAND:
+        type: string
+        required: false
+        default: ansible-playbook site.yml
+      ENVIRONMENT:
+        type: string
+        required: false
+        default: production
+      #-----------------------------------------------------------------------------------------------------------------
+      # Common
+      #-----------------------------------------------------------------------------------------------------------------
+      WORKING_DIR:
+        type: string
+        required: false
+        default: .
+      #-----------------------------------------------------------------------------------------------------------------
+      # Features
+      #-----------------------------------------------------------------------------------------------------------------
+      ANSIBLE_TARGETS_FILE:
+        type: string
+        required: true
+      #-----------------------------------------------------------------------------------------------------------------
+      # Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      OS_VERSION:
+        type: string
+        required: false
+        default: ubuntu-24.04
+      PYTHON_VERSION:
+        type: string
+        required: false
+        default: "3.13"
+      ANSIBLE_CORE_VERSION:
+        type: string
+        required: false
+        default: "2.21.*"
+      ANSIBLE_LINT_VERSION:
+        type: string
+        required: false
+        default: "26.*"
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #-----------------------------------------------------------------------------------------------------------------
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: ansible-plan
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: ansible-plan.tar.gz
+    secrets:
+      #-----------------------------------------------------------------------------------------------------------------
+      # SSH
+      #-----------------------------------------------------------------------------------------------------------------
+      SSH_PRIVATE_KEY:
+        required: true
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Target Matrix
+  #---------------------------------------------------------------------------------------------------------------------
+  targets:
+    name: Target Matrix
+    runs-on: ${{ inputs.OS_VERSION }}
+    outputs:
+      matrix: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - name: Prepare
+        uses: actions/checkout@v7
+      - id: targets
+        name: Load Ansible Targets
+        shell: bash
+        env:
+          ANSIBLE_TARGETS_FILE: ${{ inputs.ANSIBLE_TARGETS_FILE }}
+        run: |
+          matrix="$(
+            jq -cer '
+              if (
+                type == "array" and
+                length > 0 and
+                ([.[].inventory_host] | unique | length) == length and
+                all(.[];
+                  (.inventory_host | type == "string" and length > 0) and
+                  (.ssh_host | type == "string" and length > 0) and
+                  (.ssh_port | type == "number" and . >= 1 and . <= 65535)
+                )
+              ) then . else error("Invalid or empty Ansible targets file") end
+            ' "${ANSIBLE_TARGETS_FILE}"
+          )"
+          printf 'matrix=%s\n' "${matrix}" >>"${GITHUB_OUTPUT}"
+
+  #---------------------------------------------------------------------------------------------------------------------
+  # Deploy
+  #---------------------------------------------------------------------------------------------------------------------
+  deploy:
+    name: Deploy (${{ matrix.target.inventory_host }})
+    needs:
+      - targets
+    environment: ${{ inputs.ENVIRONMENT }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ${{ inputs.OS_VERSION }}
+        target: ${{ fromJSON(needs.targets.outputs.matrix) }}
+    steps:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Prepare Repository
+      #-----------------------------------------------------------------------------------------------------------------
+      - name: Prepare
+        uses: actions/checkout@v7
+      #-----------------------------------------------------------------------------------------------------------------
+      # Download Artifact
+      #-----------------------------------------------------------------------------------------------------------------
+      - name: Download Artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.ARTIFACT_NAME }}-${{ matrix.target.inventory_host }}
+          path: ${{ runner.temp }}/ansible-artifact
+      - name: Extract Ansible Package
+        shell: bash
+        run: tar -xzf "${RUNNER_TEMP}/ansible-artifact/${{ inputs.ARTIFACT_PATH }}" -C "${{ inputs.WORKING_DIR }}"
+      #-----------------------------------------------------------------------------------------------------------------
+      # Setup Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      - name: Set up Ansible
+        uses: bayudwiyansatria/.github/actions/configure-ansible@master
+        with:
+          python-version: ${{ inputs.PYTHON_VERSION }}
+          ansible-core-version: ${{ inputs.ANSIBLE_CORE_VERSION }}
+          ansible-lint-version: ${{ inputs.ANSIBLE_LINT_VERSION }}
+      #-----------------------------------------------------------------------------------------------------------------
+      # Configure SSH
+      #-----------------------------------------------------------------------------------------------------------------
+      - name: Configure SSH
+        shell: bash
+        working-directory: ${{ inputs.WORKING_DIR }}
+        env:
+          ANSIBLE_LIMIT: ${{ matrix.target.inventory_host }}
+          ANSIBLE_PRIVATE_KEY_FILE: ${{ runner.temp }}/ansible_ssh_key
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ matrix.target.ssh_host }}
+          SSH_PORT: ${{ matrix.target.ssh_port }}
+        run: |
+          inventory_target="$(ansible-inventory --host "${ANSIBLE_LIMIT}")"
+          inventory_ssh_host="$(jq -er '.ansible_host | select(type == "string" and length > 0)' <<<"${inventory_target}")"
+          inventory_ssh_port="$(jq -er '(.ansible_port // 22) | tostring' <<<"${inventory_target}")"
+          if [[ "${inventory_ssh_host}" != "${SSH_HOST}" || "${inventory_ssh_port}" != "${SSH_PORT}" ]]; then
+            printf 'Matrix target does not match Ansible inventory host %s.\n' "${ANSIBLE_LIMIT}" >&2
+            exit 1
+          fi
+          install -m 0700 -d "${HOME}/.ssh"
+          install -m 0600 /dev/null "${ANSIBLE_PRIVATE_KEY_FILE}"
+          printf '%s\n' "${SSH_PRIVATE_KEY}" >"${ANSIBLE_PRIVATE_KEY_FILE}"
+          ssh-keyscan -T 10 -H -p "${SSH_PORT}" "${SSH_HOST}" \
+            >"${RUNNER_TEMP}/ssh_known_hosts"
+          test -s "${RUNNER_TEMP}/ssh_known_hosts"
+          install -m 0600 "${RUNNER_TEMP}/ssh_known_hosts" "${HOME}/.ssh/known_hosts"
+      #-----------------------------------------------------------------------------------------------------------------
+      # Apply Package
+      #-----------------------------------------------------------------------------------------------------------------
+      - name: Apply Ansible Package
+        run: ${{ inputs.ANSIBLE_COMMAND }} --limit "${ANSIBLE_LIMIT}"
+        env:
+          ANSIBLE_LIMIT: ${{ matrix.target.inventory_host }}
+          ANSIBLE_PRIVATE_KEY_FILE: ${{ runner.temp }}/ansible_ssh_key
+        working-directory: ${{ inputs.WORKING_DIR }}
