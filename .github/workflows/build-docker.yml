@@ -9,6 +9,11 @@ on:
         type: string
         required: false
         default: docker build -t ${{ github.repository }} .
+      SOURCE_DOCKER_REPOSITORY:
+        description: Source image including registry and tag or digest; required when RETAGING_ONLY is true
+        type: string
+        required: false
+        default: ""
       DOCKER_REPOSITORY:
         type: string
         required: false
@@ -36,6 +41,10 @@ on:
       # Features
       #-----------------------------------------------------------------------------------------------------------------
       PUSH_ENABLED:
+        type: boolean
+        required: false
+        default: false
+      RETAGING_ONLY:
         type: boolean
         required: false
         default: false
@@ -105,7 +114,7 @@ jobs:
     # Download Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Download Artifact
-      if: ${{ inputs.ARTIFACT_ENABLED == true }}
+      if: ${{ inputs.ARTIFACT_ENABLED && !inputs.RETAGING_ONLY }}
       uses: actions/download-artifact@v7
       with:
         name: ${{ inputs.ARTIFACT_NAME }}
@@ -125,11 +134,25 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     # Build Package
     #-------------------------------------------------------------------------------------------------------------------
+    - name: Retag Docker
+      if: ${{ inputs.RETAGING_ONLY }}
+      shell: bash
+      env:
+        SOURCE_DOCKER_REPOSITORY: ${{ inputs.SOURCE_DOCKER_REPOSITORY }}
+        TARGET_DOCKER_REPOSITORY: ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }}
+      run: |
+        set -euo pipefail
+        if [ -z "${SOURCE_DOCKER_REPOSITORY}" ]; then
+          echo "SOURCE_DOCKER_REPOSITORY is required when RETAGING_ONLY is true." >&2
+          exit 1
+        fi
+        docker pull "${SOURCE_DOCKER_REPOSITORY}"
+        docker tag "${SOURCE_DOCKER_REPOSITORY}" "${TARGET_DOCKER_REPOSITORY}"
     - name: Build Docker with Argument
-      if: ${{ inputs.DOCKER_BUILD_ARG != null }}
+      if: ${{ !inputs.RETAGING_ONLY && inputs.DOCKER_BUILD_ARG != null }}
       run: docker build --build-arg ${{ inputs.DOCKER_BUILD_ARG }} -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.WORKING_DIR }}
     - name: Build Docker
-      if: ${{ inputs.DOCKER_BUILD_ARG == null }}
+      if: ${{ !inputs.RETAGING_ONLY && inputs.DOCKER_BUILD_ARG == null }}
       run: docker build -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Push Package
