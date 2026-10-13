@@ -7,6 +7,7 @@ This directory contains documentation for custom GitHub Actions used in this rep
 - [Configure Docker Action](configure-docker.md)
 - [Configure Node Action](configure-node.md)
 - [Configure Java Action](configure-java.md)
+- [Configure Go Action](configure-go.md)
 - [Configure Maven Action](configure-maven.md)
 - [Configure Git Action](configure-git.md)
 - [Git Tag Action](git-tag.md)

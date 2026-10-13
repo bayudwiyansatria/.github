@@ -8,11 +8,18 @@
   - [Configure Docker Action](actions/configure-docker.md)
   - [Configure Node Action](actions/configure-node.md)
   - [Configure Java Action](actions/configure-java.md)
+  - [Configure Go Action](actions/configure-go.md)
   - [Configure Maven Action](actions/configure-maven.md)
   - [Configure Git Action](actions/configure-git.md)
   - [Git Tag Action](actions/git-tag.md)
   - [Maven Get Version Action](actions/maven-get-version.md)
 - [Workflows](workflows/README.md)
+  - [Go Workflows](workflows/golang/README.md)
+    - [Build Go Workflow](workflows/golang/build.md)
+    - [Test Go Workflow](workflows/golang/test.md)
+    - [Release Go Workflow](workflows/golang/release.md)
+  - [Go workflow change record](changes-log/2026-10-13-go-workflows.md)
+  - [Go release change record](changes-log/2026-10-13-go-release.md)
   - [Docker Action Workflow](workflows/docker/README.md)
     - [Docker Build Workflow](workflows/docker/build.md)
     - [Deploy Docker Workflow](workflows/docker/deploy.md)
@@ -37,3 +44,7 @@
     - [GitHub CodeQL Workflow](workflows/github/github-codeql.md)
     - [Release GitHub Pages Workflow](workflows/github/release-github-pages.md)
     - [GitHub Storage Cleaner Workflow](workflows/github/github-storage-cleaner.md)
+
+- [2026-10-04 — Repair the support link](changes-log/2026-10-04-support-link.md) — point to existing repository documentation
+
+- [2026-10-04 — Agent context](changes-log/2026-10-04-agent-context.md) — local instructions and selective Blueprint navigation

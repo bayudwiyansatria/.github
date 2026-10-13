@@ -1,0 +1,200 @@
+name: Release Go
+on:
+  workflow_call:
+    inputs:
+      #-----------------------------------------------------------------------------------------------------------------
+      # Version
+      #-----------------------------------------------------------------------------------------------------------------
+      MAJOR_VERSION:
+        type: string
+        required: true
+      MINOR_VERSION:
+        type: string
+        required: true
+      INCREMENTAL_VERSION:
+        type: string
+        required: true
+      #-----------------------------------------------------------------------------------------------------------------
+      # Usage
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Usage
+      #-----------------------------------------------------------------------------------------------------------------
+      # Common
+      #-----------------------------------------------------------------------------------------------------------------
+      MODULE_FILE:
+        type: string
+        required: false
+        default: go.mod
+      RELEASE_NOTES_DIR:
+        type: string
+        required: false
+        default: docs/release-notes
+      #-----------------------------------------------------------------------------------------------------------------
+      # Features
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Features
+      #-----------------------------------------------------------------------------------------------------------------
+      # Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Platform
+      #-----------------------------------------------------------------------------------------------------------------
+      # Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # No Registry
+      #-----------------------------------------------------------------------------------------------------------------
+      # Artifact
+      #-----------------------------------------------------------------------------------------------------------------
+      ARTIFACT_NAME:
+        type: string
+        required: false
+        default: bin
+      ARTIFACT_PATH:
+        type: string
+        required: false
+        default: bin
+      BINARY_NAME:
+        type: string
+        required: false
+        default: server
+    secrets:
+      #-----------------------------------------------------------------------------------------------------------------
+      # GitHub
+      #-----------------------------------------------------------------------------------------------------------------
+      GITHUB_PAT:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  #---------------------------------------------------------------------------------------------------------------------
+  # Release
+  #---------------------------------------------------------------------------------------------------------------------
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    env:
+      MAJOR: ${{ inputs.MAJOR_VERSION }}
+      MINOR: ${{ inputs.MINOR_VERSION }}
+      PATCH: ${{ inputs.INCREMENTAL_VERSION }}
+      MODULE_FILE: ${{ inputs.MODULE_FILE }}
+      NOTES_DIR: ${{ inputs.RELEASE_NOTES_DIR }}
+      ARTIFACT_PATH: ${{ inputs.ARTIFACT_PATH }}
+      BINARY_NAME: ${{ inputs.BINARY_NAME }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+    #-------------------------------------------------------------------------------------------------------------------
+    # Prepare Repository
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Prepare
+      uses: actions/checkout@v7
+      with:
+        ref: ${{ github.sha }}
+        persist-credentials: false
+    #-------------------------------------------------------------------------------------------------------------------
+    # Validate Release
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Validate Release Contract
+      id: contract
+      run: |
+        if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch || "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]]; then
+          echo "::error::Dispatch releases from the repository default branch."
+          exit 1
+        fi
+        for component in "$MAJOR" "$MINOR" "$PATCH"; do
+          if [[ ! "$component" =~ ^(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Version components must be nonnegative integers without leading zeroes."
+            exit 1
+          fi
+        done
+        for relative in "$MODULE_FILE" "$NOTES_DIR" "$ARTIFACT_PATH"; do
+          if [[ -z "$relative" || "$relative" == /* || "/$relative/" == */../* ]]; then
+            echo "::error::Module, notes and artifact paths must stay relative to the repository."
+            exit 1
+          fi
+        done
+        if [[ ! "$BINARY_NAME" =~ ^[A-Za-z0-9_-]+$ ]]; then
+          echo "::error::BINARY_NAME must be a simple executable name."
+          exit 1
+        fi
+        module=$(awk '$1 == "module" {print $2; exit}' "$MODULE_FILE")
+        if [[ -z "$module" ]]; then
+          echo "::error::MODULE_FILE must declare a Go module."
+          exit 1
+        fi
+        if [[ "$MAJOR" != 0 && "$MAJOR" != 1 && "$module" != */v"$MAJOR" ]]; then
+          echo "::error::Go v2+ releases require the matching /vN module path."
+          exit 1
+        fi
+        if [[ ( "$MAJOR" == 0 || "$MAJOR" == 1 ) && "$module" =~ /v[0-9]+$ ]]; then
+          echo "::error::The module path does not match the selected major version."
+          exit 1
+        fi
+        version="$MAJOR.$MINOR.$PATCH"
+        notes="$NOTES_DIR/$version.md"
+        test -s "$notes" || { echo "::error::Commit nonempty release notes at $notes before dispatch."; exit 1; }
+        git ls-files --error-unmatch -- "$notes" >/dev/null
+        printf 'tag=v%s\nnotes=%s\n' "$version" "$notes" >> "$GITHUB_OUTPUT"
+    #-------------------------------------------------------------------------------------------------------------------
+    # Download Artifact
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Download Build
+      uses: actions/download-artifact@v7
+      with:
+        name: ${{ inputs.ARTIFACT_NAME }}
+        path: ${{ inputs.ARTIFACT_PATH }}
+    #-------------------------------------------------------------------------------------------------------------------
+    # Packaging
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Package Build
+      id: package
+      env:
+        TAG: ${{ steps.contract.outputs.tag }}
+      run: |
+        test -f "$ARTIFACT_PATH/$BINARY_NAME"
+        header=$(od -An -tx1 -N6 "$ARTIFACT_PATH/$BINARY_NAME" | tr -d '[:space:]')
+        machine=$(od -An -tx1 -j18 -N2 "$ARTIFACT_PATH/$BINARY_NAME" | tr -d '[:space:]')
+        if [[ "$header" != 7f454c460201 || "$machine" != 3e00 ]]; then
+          echo "::error::Release requires a 64-bit little-endian x86-64 ELF executable."
+          exit 1
+        fi
+        # Artifact downloads do not preserve the executable permission.
+        chmod +x "$ARTIFACT_PATH/$BINARY_NAME"
+        mkdir -p dist
+        name="${GITHUB_REPOSITORY##*/}-$TAG-linux-amd64.tar.gz"
+        tar --mode=0755 -czf "dist/$name" -C "$ARTIFACT_PATH" -- "$BINARY_NAME"
+        (cd dist && sha256sum -- "$name" > SHA256SUMS)
+        printf 'archive=dist/%s\n' "$name" >> "$GITHUB_OUTPUT"
+    #-------------------------------------------------------------------------------------------------------------------
+    # Create GitHub Release
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Publish GitHub Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_PAT }}
+        TAG: ${{ steps.contract.outputs.tag }}
+        NOTES: ${{ steps.contract.outputs.notes }}
+        ARCHIVE: ${{ steps.package.outputs.archive }}
+      run: |
+        # Refuse to replace a release or move a tag. A matching tag left by a failed attempt is reusable.
+        existing=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq '.[].tag_name')
+        if grep -Fxq -- "$TAG" <<< "$existing"; then
+          echo "::error::The selected release already exists."
+          exit 1
+        fi
+        gh auth setup-git
+        remote=$(git ls-remote origin "refs/tags/$TAG" "refs/tags/$TAG^{}")
+        if [[ -n "$remote" ]]; then
+          git fetch --no-tags origin "refs/tags/$TAG"
+          tagged_commit=$(git rev-parse 'FETCH_HEAD^{commit}')
+          if [[ "$tagged_commit" != "$GITHUB_SHA" ]]; then
+            echo "::error::The selected tag points at a different commit."
+            exit 1
+          fi
+        fi
+        gh release create "$TAG" "$ARCHIVE" dist/SHA256SUMS \
+          --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+          --title "$TAG" --notes-file "$NOTES"

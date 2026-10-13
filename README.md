@@ -5,3 +5,7 @@
 [![License](https://img.shields.io/github/license/bayudwiyansatria/.github)](LICENSE)
 
 Community health files under [@bayudwiyansatria](https://github.com/bayudwiyansatria) repository.
+
+Reusable build and test workflows are maintained here. Go projects use
+[the Go workflow contract](docs/workflows/golang/README.md) and
+[Configure Go](docs/actions/configure-go.md), with repository-owned triggers, commands and artifact paths.
