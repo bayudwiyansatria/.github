@@ -1,15 +1,24 @@
-name: Deploy Helm Chart
+name: Release Helm
 on:
   workflow_call:
     inputs:
       #-----------------------------------------------------------------------------------------------------------------
+      # Version
+      #-----------------------------------------------------------------------------------------------------------------
+      MAJOR_VERSION:
+        type: string
+        required: true
+      MINOR_VERSION:
+        type: string
+        required: true
+      INCREMENTAL_VERSION:
+        type: string
+        required: true
+      #-----------------------------------------------------------------------------------------------------------------
       # Usage
       #-----------------------------------------------------------------------------------------------------------------
-      HELM_REPOSITORY:
-        type: string
-        required: false
-        default: ${{ github.repository }}
       HELM_CHART_NAME:
+        description: Chart directory under WORKING_DIR; must match the name in Chart.yaml
         type: string
         required: false
         default: ${{ github.event.repository.name }}
@@ -17,9 +26,25 @@ on:
       # Common
       #-----------------------------------------------------------------------------------------------------------------
       WORKING_DIR:
+        description: Directory that holds the charts
         type: string
         required: false
-        default: .
+        default: ./charts
+      HELM_SET:
+        description: Comma-separated --set values, so charts with required values can lint
+        type: string
+        required: false
+        default: ""
+      KUBE_VERSION:
+        description: Kubernetes version to check the chart kubeVersion against
+        type: string
+        required: false
+        default: ""
+      RELEASE_NOTES_DIR:
+        description: Directory that holds the committed <version>.md release notes
+        type: string
+        required: false
+        default: docs/release-notes
       #-----------------------------------------------------------------------------------------------------------------
       # Features
       #-----------------------------------------------------------------------------------------------------------------
@@ -31,70 +56,338 @@ on:
         type: string
         required: false
         default: ubuntu-24.04
+      HELM_VERSION:
+        type: string
+        required: false
+        default: latest
       #-----------------------------------------------------------------------------------------------------------------
       # Registry
       #-----------------------------------------------------------------------------------------------------------------
-      # No Registry
+      HELM_REPOSITORY:
+        description: Where to publish; oci://<registry>/<namespace> or https://<chart repository>
+        type: string
+        required: false
+        default: oci://ghcr.io/${{ github.repository_owner }}/charts
+      HELM_UPLOAD_METHOD:
+        description: For https:// only; PUT for Nexus and Artifactory, POST for ChartMuseum
+        type: string
+        required: false
+        default: PUT
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
-      ARTIFACT_NAME:
-        type: string
-        required: false
-        default: ${{ github.event.repository.name }}-0.1.0.tgz
-      ARTIFACT_PATH:
-        type: string
-        required: false
-        default: ${{ github.event.repository.name }}-0.1.0.tgz
-      ARTIFACT_RETENTION:
-        type: string
-        required: false
-        default: "1"
+      # No Artifact
     secrets:
       #-----------------------------------------------------------------------------------------------------------------
       # Registry
       #-----------------------------------------------------------------------------------------------------------------
-      HELM_AUTH_TOKEN:
+      HELM_USERNAME:
         required: true
+      HELM_PASSWORD:
+        required: true
+
+# No permissions are declared, so the caller decides: contents read, plus packages write when publishing to GHCR.
+
 jobs:
   #---------------------------------------------------------------------------------------------------------------------
-  # Deploy
+  # Release
   #---------------------------------------------------------------------------------------------------------------------
-  deploy:
-    runs-on: ubuntu-latest
+  release:
+    name: Release
+    runs-on: ${{ inputs.OS_VERSION }}
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      CHART: ${{ inputs.HELM_CHART_NAME }}
+      CHART_DIR: ${{ inputs.WORKING_DIR }}/${{ inputs.HELM_CHART_NAME }}
+      VERSION: ${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}
+      NOTES: ${{ inputs.RELEASE_NOTES_DIR }}/${{ inputs.MAJOR_VERSION }}.${{ inputs.MINOR_VERSION }}.${{ inputs.INCREMENTAL_VERSION }}.md
+      WORKING_DIR: ${{ inputs.WORKING_DIR }}
+      NOTES_DIR: ${{ inputs.RELEASE_NOTES_DIR }}
+      HELM_SET: ${{ inputs.HELM_SET }}
+      KUBE_VERSION: ${{ inputs.KUBE_VERSION }}
+      HELM_REPOSITORY: ${{ inputs.HELM_REPOSITORY }}
+      UPLOAD_METHOD: ${{ inputs.HELM_UPLOAD_METHOD }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+
     steps:
     #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
     #-------------------------------------------------------------------------------------------------------------------
-    - name: Checkout code
+    - name: Prepare
       uses: actions/checkout@v7
-    #-------------------------------------------------------------------------------------------------------------------
-    # Download Artifact
-    #-------------------------------------------------------------------------------------------------------------------
-    - name: Download Artifact
-      uses: actions/download-artifact@v7
       with:
-        name: ${{ inputs.ARTIFACT_NAME }}
-        path: ${{ inputs.ARTIFACT_PATH }}
+        ref: ${{ github.sha }}
+        persist-credentials: false
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Validate Release
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Check Dispatch
+      run: |
+        # Releases start only from a manual run on the default branch.
+        if [[ "$GITHUB_EVENT_NAME" != workflow_dispatch || "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]]; then
+          echo "::error::Dispatch releases manually from the $DEFAULT_BRANCH branch."
+          exit 1
+        fi
+
+        # Three plain numbers: 1.0.0, never 01.0.0 or 1.0.0-rc.1.
+        if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+          echo "::error::Version '$VERSION' must be three numbers without leading zeroes."
+          exit 1
+        fi
+
+    - name: Check Inputs
+      run: |
+        fail() {
+          echo "::error::$*"
+          exit 1
+        }
+
+        if [[ ! "$CHART" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+          fail "HELM_CHART_NAME '$CHART' must be a lowercase chart name."
+        fi
+
+        for path in "$WORKING_DIR" "$NOTES_DIR"; do
+          if [[ -z "$path" || "$path" == /* || "/$path/" == */../* ]]; then
+            fail "Path '$path' must be relative to the repository."
+          fi
+        done
+
+        if [[ ! -f "$CHART_DIR/Chart.yaml" ]]; then
+          fail "$CHART_DIR/Chart.yaml does not exist."
+        fi
+
+        # The repository scheme decides how the chart is published.
+        remote="${HELM_REPOSITORY%/}"
+
+        if [[ "$remote" =~ ^oci://[a-z0-9.-]+(:[0-9]+)?(/[a-z0-9._-]+)*$ ]]; then
+          target=oci
+        elif [[ "$remote" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[A-Za-z0-9._~-]+)*$ ]]; then
+          target=http
+        else
+          fail "HELM_REPOSITORY must be a lowercase oci:// reference or an https:// chart repository URL."
+        fi
+
+        if [[ "$target" == http && "$UPLOAD_METHOD" != PUT && "$UPLOAD_METHOD" != POST ]]; then
+          fail "HELM_UPLOAD_METHOD must be PUT or POST."
+        fi
+
+        echo "REMOTE=$remote" >> "$GITHUB_ENV"
+        echo "TARGET=$target" >> "$GITHUB_ENV"
+
+    - name: Check Release Notes
+      run: |
+        if [[ ! -s "$NOTES" ]]; then
+          echo "::error::Commit nonempty release notes at $NOTES before dispatch."
+          exit 1
+        fi
+
+        if ! git ls-files --error-unmatch -- "$NOTES" > /dev/null 2>&1; then
+          echo "::error::$NOTES exists but is not committed."
+          exit 1
+        fi
+
+        # The heading proves the notes describe this version and were not copied from another one.
+        if ! grep -Eq "^## Version ${VERSION//./\\.}[[:space:]]*$" "$NOTES"; then
+          echo "::error::$NOTES must contain the heading '## Version $VERSION'."
+          exit 1
+        fi
+
     #-------------------------------------------------------------------------------------------------------------------
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Set up Helm
       uses: azure/setup-helm@v4
-    #-------------------------------------------------------------------------------------------------------------------
-    # Get Version
-    #-------------------------------------------------------------------------------------------------------------------
-    - name: Get Helm Version
-      id: versions
-      uses: bayudwiyansatria/.github/actions/helm-get-version@master
       with:
-        checkout: false
-        working-directory: ${{ inputs.WORKING_DIR }}/${{ inputs.HELM_CHART_NAME }}
+        version: ${{ inputs.HELM_VERSION }}
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Validate Chart
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Check Chart Version
+      run: |
+        # Read a top-level Chart.yaml key. Nested keys, such as a maintainer's name, are skipped.
+        field() {
+          awk -v key="$1:" '/^[^[:space:]]/ && $1 == key { gsub(/["\047]/, "", $2); print $2; exit }' <<< "$metadata"
+        }
+
+        metadata=$(helm show chart "$CHART_DIR")
+        name=$(field name)
+        version=$(field version)
+        app_version=$(field appVersion)
+
+        if [[ "$name" != "$CHART" ]]; then
+          echo "::error::Chart.yaml declares '$name', not '$CHART'."
+          exit 1
+        fi
+
+        # The committed chart must already name the release. Nothing is overridden at package time.
+        if [[ "$version" != "$VERSION" || "$app_version" != "$VERSION" ]]; then
+          echo "::error::Chart.yaml version '$version' and appVersion '$app_version' must both be '$VERSION'."
+          exit 1
+        fi
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Configure Repository
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Login OCI Registry
+      if: env.TARGET == 'oci'
+      env:
+        HELM_USERNAME: ${{ secrets.HELM_USERNAME }}
+        HELM_PASSWORD: ${{ secrets.HELM_PASSWORD }}
+      run: |
+        # oci://ghcr.io/owner/charts → ghcr.io
+        host="${REMOTE#oci://}"
+        host="${host%%/*}"
+
+        printf '%s' "$HELM_PASSWORD" | helm registry login "$host" --username "$HELM_USERNAME" --password-stdin
+
+        echo "CHART_REF=$REMOTE/$CHART" >> "$GITHUB_ENV"
+
+    - name: Login Chart Repository
+      if: env.TARGET == 'http'
+      env:
+        HELM_USERNAME: ${{ secrets.HELM_USERNAME }}
+        HELM_PASSWORD: ${{ secrets.HELM_PASSWORD }}
+      run: |
+        # Adding the repository also proves the URL serves an index.yaml that these credentials can read.
+        printf '%s' "$HELM_PASSWORD" | helm repo add release "$REMOTE" --username "$HELM_USERNAME" --password-stdin
+
+        echo "CHART_REF=release/$CHART" >> "$GITHUB_ENV"
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Validate Publication
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Refuse Existing Version
+      run: |
+        # A published version is a contract. It is never replaced, even where the server would allow it.
+        if helm show chart "$CHART_REF" --version "$VERSION" > /dev/null 2>&1; then
+          echo "::error::$CHART $VERSION is already published to $REMOTE. Release a new version instead."
+          exit 1
+        fi
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Packaging
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Package Chart
+      run: |
+        field() {
+          awk -v key="$1:" '/^[^[:space:]]/ && $1 == key { gsub(/["\047]/, "", $2); print $2; exit }' <<< "$metadata"
+        }
+
+        args=()
+
+        if [[ -n "$KUBE_VERSION" ]]; then
+          args+=(--kube-version "$KUBE_VERSION")
+        fi
+
+        if [[ -n "$HELM_SET" ]]; then
+          args+=(--set "$HELM_SET")
+        fi
+
+        helm lint --strict "$CHART_DIR" "${args[@]}"
+
+        mkdir -p dist
+        helm package "$CHART_DIR" --destination dist
+
+        package="dist/$CHART-$VERSION.tgz"
+
+        if [[ ! -f "$package" ]]; then
+          echo "::error::helm package did not produce $package."
+          exit 1
+        fi
+
+        # Check the package itself, not only the source it was built from.
+        metadata=$(helm show chart "$package")
+
+        for key in version appVersion; do
+          value=$(field "$key")
+
+          if [[ "$value" != "$VERSION" ]]; then
+            echo "::error::Packaged $key '$value' does not match '$VERSION'."
+            exit 1
+          fi
+        done
+
+        echo "PACKAGE=$package" >> "$GITHUB_ENV"
+
     #-------------------------------------------------------------------------------------------------------------------
     # Publish Package
     #-------------------------------------------------------------------------------------------------------------------
-    - name: Push Helm Chart
-      run: helm push ${{ inputs.ARTIFACT_NAME }}
+    - name: Push to OCI Registry
+      if: env.TARGET == 'oci'
+      run: |
+        helm push "$PACKAGE" "$REMOTE" 2>&1 | tee "$RUNNER_TEMP/push.log"
+
+        # helm push reports the stored chart as "Digest: sha256:...".
+        digest=$(awk '$1 == "Digest:" { print $2; exit }' "$RUNNER_TEMP/push.log")
+
+        echo "CHART_DIGEST=$digest" >> "$GITHUB_ENV"
+        echo "CHART_LOCATION=$REMOTE/$CHART:$VERSION" >> "$GITHUB_ENV"
+        echo "INSTALL_COMMAND=helm install <release> $REMOTE/$CHART --version $VERSION" >> "$GITHUB_ENV"
+
+    - name: Upload to Chart Repository
+      if: env.TARGET == 'http'
       env:
-        HELM_REPO_URL: ${{ secrets.HELM_REPOSITORY }}
-        HELM_REPO_TOKEN: ${{ secrets.HELM_AUTH_TOKEN }}
+        HELM_USERNAME: ${{ secrets.HELM_USERNAME }}
+        HELM_PASSWORD: ${{ secrets.HELM_PASSWORD }}
+      run: |
+        # Nexus and Artifactory take PUT <repository>/<file>. ChartMuseum takes POST <repository>/api/charts.
+        if [[ "$UPLOAD_METHOD" == PUT ]]; then
+          url="$REMOTE/${PACKAGE##*/}"
+          body=(--upload-file "$PACKAGE")
+        else
+          url="$REMOTE/api/charts"
+          body=(--data-binary "@$PACKAGE")
+        fi
+
+        # Credentials reach curl through its config on stdin, never through the command line.
+        auth=$(printf '%s:%s' "$HELM_USERNAME" "$HELM_PASSWORD" | base64 -w0)
+        echo "::add-mask::$auth"
+
+        printf 'header = "Authorization: Basic %s"\n' "$auth" |
+          curl --config - --fail-with-body --silent --show-error \
+            --request "$UPLOAD_METHOD" "${body[@]}" "$url"
+        echo
+
+    - name: Wait for Chart Repository Index
+      if: env.TARGET == 'http'
+      run: |
+        # The server rebuilds index.yaml after an upload. Give it up to 30 seconds to list the new version.
+        for attempt in 1 2 3 4 5 6; do
+          helm repo update release > /dev/null
+
+          if helm show chart "$CHART_REF" --version "$VERSION" > /dev/null 2>&1; then
+            digest=$(sha256sum "$PACKAGE" | cut -d ' ' -f 1)
+
+            echo "CHART_DIGEST=sha256:$digest" >> "$GITHUB_ENV"
+            echo "CHART_LOCATION=$REMOTE" >> "$GITHUB_ENV"
+            echo "INSTALL_COMMAND=helm repo add <name> $REMOTE && helm install <release> <name>/$CHART --version $VERSION" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          sleep 5
+        done
+
+        echo "::error::$CHART $VERSION was uploaded, but $REMOTE/index.yaml does not list it."
+        exit 1
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Summary
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Summary
+      run: |
+        {
+          echo "### $CHART $VERSION"
+          echo
+          echo "| Artifact | Reference |"
+          echo "| --- | --- |"
+          echo "| Repository | \`$CHART_LOCATION\` |"
+          echo "| Chart digest | \`${CHART_DIGEST:-not reported}\` |"
+          echo "| Install | \`$INSTALL_COMMAND\` |"
+        } >> "$GITHUB_STEP_SUMMARY"

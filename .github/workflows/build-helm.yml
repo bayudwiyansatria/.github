@@ -5,25 +5,47 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Usage
       #-----------------------------------------------------------------------------------------------------------------
-      HELM_REPOSITORY:
-        type: string
-        required: false
-        default: ${{ github.repository }}
       HELM_CHART_NAME:
+        description: Chart directory under WORKING_DIR; must match the name in Chart.yaml
         type: string
         required: false
         default: ${{ github.event.repository.name }}
+      HELM_REPOSITORY:
+        description: Deprecated and unused; still accepted so existing callers keep working
+        type: string
+        required: false
+        default: ${{ github.repository }}
       #-----------------------------------------------------------------------------------------------------------------
       # Common
       #-----------------------------------------------------------------------------------------------------------------
       WORKING_DIR:
+        description: Directory that holds the charts
         type: string
         required: false
         default: ./charts
+      HELM_SET:
+        description: Comma-separated --set values, so charts with required values can render
+        type: string
+        required: false
+        default: ""
+      KUBE_VERSION:
+        description: Kubernetes version to check the chart kubeVersion against
+        type: string
+        required: false
+        default: ""
       #-----------------------------------------------------------------------------------------------------------------
       # Features
       #-----------------------------------------------------------------------------------------------------------------
-      # No Features
+      REQUIRE_ALIGNED_VERSION:
+        description: Fail unless Chart.yaml appVersion equals version
+        type: boolean
+        required: false
+        default: false
+      EXPECTED_VERSION:
+        description: Fail unless Chart.yaml version and appVersion both equal this, for example the release version
+        type: string
+        required: false
+        default: ""
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
@@ -31,6 +53,10 @@ on:
         type: string
         required: false
         default: ubuntu-24.04
+      HELM_VERSION:
+        type: string
+        required: false
+        default: latest
       #-----------------------------------------------------------------------------------------------------------------
       # Registry
       #-----------------------------------------------------------------------------------------------------------------
@@ -38,14 +64,21 @@ on:
       #-----------------------------------------------------------------------------------------------------------------
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
+      ARTIFACT_ENABLED:
+        description: Upload the packaged chart as the artifact <chart>-<version>.tgz
+        type: boolean
+        required: false
+        default: true
       ARTIFACT_NAME:
+        description: Deprecated and unused; the artifact is always named <chart>-<version>.tgz
         type: string
         required: false
-        default: ${{ github.event.repository.name }}-0.1.0.tgz
+        default: ""
       ARTIFACT_PATH:
+        description: Deprecated and unused; the artifact always holds the package at its root
         type: string
         required: false
-        default: ${{ github.event.repository.name }}-0.1.0.tgz
+        default: ""
       ARTIFACT_RETENTION:
         type: string
         required: false
@@ -55,49 +88,156 @@ on:
       # Registry
       #-----------------------------------------------------------------------------------------------------------------
       HELM_AUTH_TOKEN:
-        required: true
+        description: Deprecated and unused; build never contacts a repository
+        required: false
+    outputs:
+      CHART_VERSION:
+        description: The version in Chart.yaml
+        value: ${{ jobs.build.outputs.version }}
+      ARTIFACT_NAME:
+        description: The uploaded artifact name, or empty when ARTIFACT_ENABLED is false
+        value: ${{ jobs.build.outputs.artifact }}
+
+permissions:
+  contents: read
+
 jobs:
   #---------------------------------------------------------------------------------------------------------------------
   # Build
   #---------------------------------------------------------------------------------------------------------------------
   build:
     name: Build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-        - ${{ inputs.OS_VERSION }}
+    runs-on: ${{ inputs.OS_VERSION }}
+    timeout-minutes: 10
+
+    outputs:
+      version: ${{ steps.chart.outputs.version }}
+      artifact: ${{ inputs.ARTIFACT_ENABLED && steps.chart.outputs.package || '' }}
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      CHART: ${{ inputs.HELM_CHART_NAME }}
+      CHART_DIR: ${{ inputs.WORKING_DIR }}/${{ inputs.HELM_CHART_NAME }}
+      WORKING_DIR: ${{ inputs.WORKING_DIR }}
+      HELM_SET: ${{ inputs.HELM_SET }}
+      KUBE_VERSION: ${{ inputs.KUBE_VERSION }}
+      REQUIRE_ALIGNED_VERSION: ${{ inputs.REQUIRE_ALIGNED_VERSION }}
+      EXPECTED_VERSION: ${{ inputs.EXPECTED_VERSION }}
+
     steps:
     #-------------------------------------------------------------------------------------------------------------------
     # Prepare Repository
     #-------------------------------------------------------------------------------------------------------------------
     - name: Prepare
       uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+
     #-------------------------------------------------------------------------------------------------------------------
     # Setup Platform
     #-------------------------------------------------------------------------------------------------------------------
     - name: Set up Helm
       uses: azure/setup-helm@v4
-    #-------------------------------------------------------------------------------------------------------------------
-    # Build Package
-    #-------------------------------------------------------------------------------------------------------------------
-    - name: Package Helm Chart
-      run: helm package ${{ inputs.WORKING_DIR }}/${{ inputs.HELM_CHART_NAME }}
-    #-------------------------------------------------------------------------------------------------------------------
-    # Get Version
-    #-------------------------------------------------------------------------------------------------------------------
-    - name: Get Helm Version
-      id: versions
-      uses: bayudwiyansatria/.github/actions/helm-get-version@master
       with:
-        checkout: false
-        working-directory: ${{ inputs.WORKING_DIR }}/${{ inputs.HELM_CHART_NAME }}
+        version: ${{ inputs.HELM_VERSION }}
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Check Chart
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Check Chart
+      id: chart
+      run: |
+        fail() {
+          echo "::error::$*"
+          exit 1
+        }
+
+        # Read a top-level Chart.yaml key. Nested keys, such as a maintainer's name, are skipped.
+        field() {
+          awk -v key="$1:" '/^[^[:space:]]/ && $1 == key { gsub(/["\047]/, "", $2); print $2; exit }' <<< "$metadata"
+        }
+
+        if [[ ! "$CHART" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+          fail "HELM_CHART_NAME '$CHART' must be a lowercase chart name."
+        fi
+
+        if [[ "$WORKING_DIR" == /* || "/$WORKING_DIR/" == */../* ]]; then
+          fail "WORKING_DIR '$WORKING_DIR' must be relative to the repository."
+        fi
+
+        if [[ ! -f "$CHART_DIR/Chart.yaml" ]]; then
+          fail "$CHART_DIR/Chart.yaml does not exist."
+        fi
+
+        metadata=$(helm show chart "$CHART_DIR")
+        name=$(field name)
+        version=$(field version)
+        app_version=$(field appVersion)
+
+        if [[ "$name" != "$CHART" ]]; then
+          fail "Chart.yaml declares '$name', not '$CHART'."
+        fi
+
+        # Version alignment is opt-in, so older charts keep building.
+        if [[ "$REQUIRE_ALIGNED_VERSION" == true && "$app_version" != "$version" ]]; then
+          fail "Chart.yaml appVersion '$app_version' must equal version '$version'."
+        fi
+
+        if [[ -n "$EXPECTED_VERSION" ]]; then
+          if [[ "$version" != "$EXPECTED_VERSION" || "$app_version" != "$EXPECTED_VERSION" ]]; then
+            fail "Chart.yaml version '$version' and appVersion '$app_version' must both be '$EXPECTED_VERSION'."
+          fi
+        fi
+
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "package=$CHART-$version.tgz" >> "$GITHUB_OUTPUT"
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Validate Templates
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Lint and Render
+      run: |
+        args=()
+
+        if [[ -n "$KUBE_VERSION" ]]; then
+          args+=(--kube-version "$KUBE_VERSION")
+        fi
+
+        if [[ -n "$HELM_SET" ]]; then
+          args+=(--set "$HELM_SET")
+        fi
+
+        helm lint --strict "$CHART_DIR" "${args[@]}"
+
+        # Rendering catches template errors, schema violations and missing required values that lint can miss.
+        helm template "$CHART" "$CHART_DIR" "${args[@]}" > /dev/null
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Packaging
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Package Chart
+      env:
+        PACKAGE: ${{ steps.chart.outputs.package }}
+      run: |
+        mkdir -p dist
+        helm package "$CHART_DIR" --destination dist
+
+        if [[ ! -f "dist/$PACKAGE" ]]; then
+          echo "::error::helm package did not produce dist/$PACKAGE."
+          exit 1
+        fi
+
     #-------------------------------------------------------------------------------------------------------------------
     # Upload Artifact
     #-------------------------------------------------------------------------------------------------------------------
     - name: Upload Artifact
+      if: ${{ inputs.ARTIFACT_ENABLED }}
       uses: actions/upload-artifact@v7
       with:
-        name: ${{ inputs.HELM_CHART_NAME }}-${{ steps.versions.outputs.version }}.tgz
-        path: ${{ inputs.HELM_CHART_NAME }}-${{ steps.versions.outputs.version }}.tgz
+        name: ${{ steps.chart.outputs.package }}
+        path: dist/${{ steps.chart.outputs.package }}
         retention-days: ${{ inputs.ARTIFACT_RETENTION }}
+        overwrite: true

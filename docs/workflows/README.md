@@ -9,6 +9,7 @@ This directory contains documentation for various GitHub Actions workflows used 
 - [Maven Workflows](maven/README.md)
 - [Node.js Workflows](nodejs/README.md)
 - [Go Workflows](golang/README.md)
+- [Helm Workflows](helm/README.md)
 - [PHP Workflows](php/README.md)
 - [Code Quality Workflows](code-quality/README.md)
 - [GitHub Workflows](github/README.md)
