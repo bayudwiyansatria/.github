@@ -1,68 +1,85 @@
 # GitHub Storage Cleaner Workflow
 
-This workflow is designed to automate the process of cleaning up storage in a GitHub repository by removing old artifacts and other unnecessary files.
+[`github-storage-cleaner.yml`](../../../.github/workflows/github-storage-cleaner.yml) removes old Actions artifacts
+and old container package versions, the two kinds of storage GitHub bills for private repositories. Both jobs use the
+GitHub CLI preinstalled on GitHub-hosted runners; no third-party action is involved.
 
-## Workflow Configuration
+## Inputs
 
-The workflow is triggered on a schedule or manually to ensure that the repository storage is kept clean and within limits.
+| Input                      | Default         | Contract                                                              |
+| -------------------------- | --------------- | --------------------------------------------------------------------- |
+| `DRY_RUN`                  | `true`          | Report what would be deleted without deleting anything                |
+| `PRIVATE_ONLY`             | `true`          | Skip everything unless the repository is private                      |
+| `ARTIFACT_CLEANUP_ENABLED` | `false`         | Delete this repository's artifacts older than `ARTIFACT_MAX_AGE_DAYS` |
+| `ARTIFACT_MAX_AGE_DAYS`    | `1`             | Whole days, at least 1                                                |
+| `PACKAGE_CLEANUP_ENABLED`  | `false`         | Delete old versions of the container package `PACKAGE_NAME`           |
+| `PACKAGE_NAME`             | Repository name | Container package, for example `charts/agent-operator`                |
+| `PACKAGE_KEEP_LATEST`      | `10`            | Newest build versions kept per image, besides protected versions      |
+| `PACKAGE_KEEP_TAGS`        | See below       | Regex; a version with any matching tag is never deleted               |
+| `PACKAGE_DELETE_UNTAGGED`  | `true`          | Delete versions without tags; unsafe for multi-platform images        |
+| `OS_VERSION`               | `ubuntu-24.04`  | Runner image                                                          |
 
-### Input Parameters
+No secret is required. Callers grant `actions: write` for artifacts and `packages: write` for packages. Grant
+`packages: write` even when package cleanup is off: GitHub checks the permissions a called workflow's jobs declare
+before it evaluates their `if` conditions.
 
-| Name             | Type   | Required | Default | Description                            |
-| ---------------- | ------ | -------- | ------- | -------------------------------------- |
-| `retention-days` | string | Yes      | `30`    | The number of days to retain artifacts |
-| `artifact-name`  | string | No       | `*`     | The name of the artifacts to clean up  |
+## Behavior
 
-## Secrets
+Every cleanup is opt-in: both `_ENABLED` inputs default to `false`, and a caller enables only the storage it uses. With
+neither enabled, every job is skipped and nothing calls the API.
 
-| Name           | Required | Description                                          |
-| -------------- | -------- | ---------------------------------------------------- |
-| `GITHUB_TOKEN` | Yes      | The GitHub token to authenticate with the repository |
+A `billing` job reads the repository visibility through the API, because scheduled runs carry no repository payload.
+Public repositories store artifacts and packages for free, so with `PRIVATE_ONLY` the cleanup jobs run only when the
+repository is private.
 
-## Jobs
+The package job lists every version with its tags, newest first, and decides each one:
 
-### Clean Storage
+1. A version with a tag matching `PACKAGE_KEEP_TAGS` is kept. The default protects release versions, `main`, `master`
+   and `latest`, with or without an image prefix: `1.0.0`, `codex-1.0.0`, `main`, `codex-latest`.
+2. A version tagged with a commit SHA, such as `84dbbac` or `codex-84dbbac`, is a build. The newest
+   `PACKAGE_KEEP_LATEST` builds of each image prefix are kept; older builds are deleted.
+3. An untagged version is deleted when `PACKAGE_DELETE_UNTAGGED` is true. A multi-platform image stores its platform
+   manifests as untagged versions, so set it to false for those packages.
+4. Any other tagged version is kept.
 
-This job handles the process of cleaning up storage in the GitHub repository.
+The job refuses to delete every version of a package, and it writes the whole decision table to the job summary.
+`actions/delete-package-versions` is not used: it matches the version name, which for containers is the digest, so it
+cannot protect versions by tag.
 
-#### Steps
+## Thin caller
 
-1. **Checkout Repository**:
-   - Uses `actions/checkout@v3` to checkout the repository.
-2. **List Artifacts**:
-   - Lists the artifacts in the repository.
-3. **Delete Old Artifacts**:
-   - Deletes artifacts older than the specified retention period.
-
-### Matrix Strategy
-
-- Runs on the `ubuntu-24.04` operating system.
-
-## Example Usage
+Run weekly, deleting on schedule and dry-running by default when started by hand:
 
 ```yaml
-name: GitHub Storage Cleaner
+name: Cleanup
 
 on:
   schedule:
-    - cron: "0 0 * * 0" # Runs weekly
+    - cron: "0 3 * * 1"
   workflow_dispatch:
+    inputs:
+      DRY_RUN:
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
 
 jobs:
-  clean-storage:
-    name: Clean Storage
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: List Artifacts
-        run: |
-          echo "Listing artifacts..."
-          gh api -X GET /repos/${{ github.repository }}/actions/artifacts
-
-      - name: Delete Old Artifacts
-        run: |
-          echo "Deleting old artifacts..."
-          gh api -X DELETE /repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[] | select(.created_at < now - ${{ inputs.retention-days }} * 86400) | .id' | xargs -I {} gh api -X DELETE /repos/${{ github.repository }}/actions/artifacts/{}
+  cleanup:
+    name: Storage Cleanup
+    permissions:
+      actions: write
+      packages: write
+    uses: bayudwiyansatria/.github/.github/workflows/github-storage-cleaner.yml@master
+    with:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.DRY_RUN }}
+      ARTIFACT_CLEANUP_ENABLED: true
+      PACKAGE_CLEANUP_ENABLED: true
+      PACKAGE_KEEP_LATEST: 10
 ```
+
+A repository whose images live in another registry enables only `ARTIFACT_CLEANUP_ENABLED`.
+
+Deleted versions cannot be pulled again. Rollbacks use release tags, which are always protected; an old non-release
+commit can be rebuilt by running Main for it.

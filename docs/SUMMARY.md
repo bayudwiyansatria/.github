@@ -48,6 +48,8 @@
     - [GitHub CodeQL Workflow](workflows/github/github-codeql.md)
     - [Release GitHub Pages Workflow](workflows/github/release-github-pages.md)
     - [GitHub Storage Cleaner Workflow](workflows/github/github-storage-cleaner.md)
+  - [Storage cleaner change record](changes-log/2026-10-14-storage-cleaner.md)
+  - [Storage cleaner opt-in change record](changes-log/2026-10-15-storage-cleaner-opt-in.md)
 
 - [2026-10-04 — Repair the support link](changes-log/2026-10-04-support-link.md) — point to existing repository documentation
 

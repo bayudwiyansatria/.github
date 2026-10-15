@@ -1,19 +1,60 @@
-name: Remove artifacts
+name: GitHub Storage Cleaner
 on:
   workflow_call:
     inputs:
       #-----------------------------------------------------------------------------------------------------------------
       # Usage
       #-----------------------------------------------------------------------------------------------------------------
-      # No Usage
+      PACKAGE_NAME:
+        description: Container package to clean, for example charts/agent-operator; empty means the repository name
+        type: string
+        required: false
+        default: ""
       #-----------------------------------------------------------------------------------------------------------------
       # Common
       #-----------------------------------------------------------------------------------------------------------------
-      # No Common
+      DRY_RUN:
+        description: Report what would be deleted without deleting anything
+        type: boolean
+        required: false
+        default: true
+      PRIVATE_ONLY:
+        description: Run only in private repositories; public storage is free, so other repositories skip cleanup
+        type: boolean
+        required: false
+        default: true
       #-----------------------------------------------------------------------------------------------------------------
       # Features
       #-----------------------------------------------------------------------------------------------------------------
-      # No Features
+      ARTIFACT_CLEANUP_ENABLED:
+        description: Delete this repository's Actions artifacts older than ARTIFACT_MAX_AGE_DAYS
+        type: boolean
+        required: false
+        default: false
+      ARTIFACT_MAX_AGE_DAYS:
+        type: number
+        required: false
+        default: 1
+      PACKAGE_CLEANUP_ENABLED:
+        description: Delete old container package versions of PACKAGE_NAME
+        type: boolean
+        required: false
+        default: false
+      PACKAGE_KEEP_LATEST:
+        description: Newest build versions kept per image, in addition to versions with a protected tag
+        type: number
+        required: false
+        default: 10
+      PACKAGE_KEEP_TAGS:
+        description: Regex for protected tags; a version with any matching tag is never deleted
+        type: string
+        required: false
+        default: '^([a-z0-9-]+-)?(main|master|latest|(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$'
+      PACKAGE_DELETE_UNTAGGED:
+        description: Delete versions without any tag; unsafe for multi-platform images, whose platform manifests are untagged
+        type: boolean
+        required: false
+        default: true
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
@@ -29,26 +70,246 @@ on:
       # Artifact
       #-----------------------------------------------------------------------------------------------------------------
       # No Artifact
-      #-----------------------------------------------------------------------------------------------------------------
+
+# Callers grant actions: write for artifacts and packages: write for packages. Both jobs use the GitHub CLI that is
+# preinstalled on GitHub-hosted runners, so no third-party action is involved.
+
 jobs:
   #---------------------------------------------------------------------------------------------------------------------
-  # Clean Up
+  # Billing
   #---------------------------------------------------------------------------------------------------------------------
-  cleanup:
-    name: Clean Up
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-        - ${{ inputs.OS_VERSION }}
+  billing:
+    name: Billing
+    if: ${{ inputs.ARTIFACT_CLEANUP_ENABLED || inputs.PACKAGE_CLEANUP_ENABLED }}
+    runs-on: ${{ inputs.OS_VERSION }}
+    timeout-minutes: 5
+    outputs:
+      billed: ${{ steps.visibility.outputs.billed }}
+    steps:
+    - name: Check Repository Visibility
+      id: visibility
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PRIVATE_ONLY: ${{ inputs.PRIVATE_ONLY }}
+      run: |
+        visibility=$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility)
+
+        if [[ "$PRIVATE_ONLY" == true && "$visibility" != private ]]; then
+          echo "Repository is $visibility, not private; cleanup is skipped."
+          echo "billed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "Repository is $visibility; cleanup runs."
+          echo "billed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+  #---------------------------------------------------------------------------------------------------------------------
+  # Artifacts
+  #---------------------------------------------------------------------------------------------------------------------
+  artifacts:
+    name: Artifacts
+    needs:
+      - billing
+    if: ${{ inputs.ARTIFACT_CLEANUP_ENABLED && needs.billing.outputs.billed == 'true' }}
+    runs-on: ${{ inputs.OS_VERSION }}
+    timeout-minutes: 10
     permissions:
       actions: write
-    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.DRY_RUN }}
+      MAX_AGE_DAYS: ${{ inputs.ARTIFACT_MAX_AGE_DAYS }}
     steps:
     #-------------------------------------------------------------------------------------------------------------------
-    # Remove Artifact
+    # Remove Artifacts
     #-------------------------------------------------------------------------------------------------------------------
-    - name: Remove old artifacts
-      uses: c-hive/gha-remove-artifacts@v1
-      with:
-        age: "1 day"
+    - name: Remove Old Artifacts
+      run: |
+        if [[ ! "$MAX_AGE_DAYS" =~ ^[1-9][0-9]*$ ]]; then
+          echo "::error::ARTIFACT_MAX_AGE_DAYS must be a whole number of at least 1."
+          exit 1
+        fi
+
+        cutoff=$(date -u -d "$MAX_AGE_DAYS days ago" +%s)
+
+        gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+          --jq '.artifacts[] | select(.expired | not) | [.id, .name, .created_at, .size_in_bytes] | @tsv' \
+          > "$RUNNER_TEMP/artifacts.tsv"
+
+        deleted=0
+        freed=0
+
+        while IFS=$'\t' read -r id name created size; do
+          if (( $(date -u -d "$created" +%s) >= cutoff )); then
+            continue
+          fi
+
+          echo "Delete artifact $name ($id), created $created"
+
+          if [[ "$DRY_RUN" != true ]]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id" > /dev/null
+          fi
+
+          deleted=$((deleted + 1))
+          freed=$((freed + size))
+        done < "$RUNNER_TEMP/artifacts.tsv"
+
+        verb=$([[ "$DRY_RUN" == true ]] && echo "would be deleted (dry run)" || echo "deleted")
+        echo "### Artifacts: $deleted $verb, $((freed / 1048576)) MiB" >> "$GITHUB_STEP_SUMMARY"
+
+  #---------------------------------------------------------------------------------------------------------------------
+  # Packages
+  #---------------------------------------------------------------------------------------------------------------------
+  packages:
+    name: Packages
+    needs:
+      - billing
+    if: ${{ inputs.PACKAGE_CLEANUP_ENABLED && needs.billing.outputs.billed == 'true' }}
+    runs-on: ${{ inputs.OS_VERSION }}
+    timeout-minutes: 10
+    permissions:
+      packages: write
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DRY_RUN: ${{ inputs.DRY_RUN }}
+      OWNER: ${{ github.repository_owner }}
+      PACKAGE: ${{ inputs.PACKAGE_NAME }}
+      KEEP_LATEST: ${{ inputs.PACKAGE_KEEP_LATEST }}
+      KEEP_TAGS: ${{ inputs.PACKAGE_KEEP_TAGS }}
+      DELETE_UNTAGGED: ${{ inputs.PACKAGE_DELETE_UNTAGGED }}
+    steps:
+    #-------------------------------------------------------------------------------------------------------------------
+    # Plan Deletions
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Plan Package Cleanup
+      run: |
+        fail() {
+          echo "::error::$*"
+          exit 1
+        }
+
+        # Scheduled runs carry no repository payload, so names come from the environment rather than github.event.
+        PACKAGE="${PACKAGE:-${GITHUB_REPOSITORY#*/}}"
+
+        if [[ ! "$PACKAGE" =~ ^[a-z0-9]([a-z0-9._/-]*[a-z0-9])?$ ]]; then
+          fail "PACKAGE_NAME '$PACKAGE' is not a valid container package name."
+        fi
+
+        if [[ ! "$KEEP_LATEST" =~ ^[1-9][0-9]*$ ]]; then
+          fail "PACKAGE_KEEP_LATEST must be a whole number of at least 1."
+        fi
+
+        # User and organization packages live under different API paths; a slash in the name is URL-encoded.
+        owner_type=$(gh api "users/$OWNER" --jq .type)
+        scope=$([[ "$owner_type" == Organization ]] && echo orgs || echo users)
+        base="$scope/$OWNER/packages/container/${PACKAGE//\//%2F}"
+        echo "PACKAGE_API=$base" >> "$GITHUB_ENV"
+
+        # Newest first, so the first builds seen per image are the ones kept.
+        gh api --paginate "$base/versions?per_page=100" \
+          --jq '.[] | [.id, .created_at, (.metadata.container.tags | join(" "))] | @tsv' \
+          | sort -t $'\t' -k2,2r > "$RUNNER_TEMP/versions.tsv"
+
+        declare -A builds=()
+        total=0
+        deletions=0
+
+        {
+          echo "### Package $PACKAGE"
+          echo
+          echo "| Version | Created | Tags | Action | Reason |"
+          echo "| --- | --- | --- | --- | --- |"
+        } > "$RUNNER_TEMP/plan.md"
+
+        : > "$RUNNER_TEMP/delete.txt"
+
+        while IFS=$'\t' read -r id created tags; do
+          total=$((total + 1))
+          action=keep
+          reason=""
+          group=""
+
+          if [[ -z "$tags" ]]; then
+            if [[ "$DELETE_UNTAGGED" == true ]]; then
+              action=delete
+              reason="untagged"
+            else
+              reason="untagged, kept"
+            fi
+          else
+            for tag in $tags; do
+              # A protected tag keeps the version whatever its age.
+              if [[ "$tag" =~ $KEEP_TAGS ]]; then
+                reason="protected tag $tag"
+                break
+              fi
+
+              # A build tag is a commit SHA, optionally after an image prefix such as codex-.
+              if [[ "$tag" =~ ^(.*-)?[0-9a-f]{7,40}$ ]]; then
+                group="${BASH_REMATCH[1]:-image}"
+              fi
+            done
+
+            if [[ -z "$reason" && -z "$group" ]]; then
+              reason="no build tag, kept"
+            elif [[ -z "$reason" ]]; then
+              count=$(( ${builds[$group]:-0} + 1 ))
+              builds[$group]=$count
+
+              if (( count <= KEEP_LATEST )); then
+                reason="build $count of the newest $KEEP_LATEST (${group%-})"
+              else
+                action=delete
+                reason="older than the newest $KEEP_LATEST builds (${group%-})"
+              fi
+            fi
+          fi
+
+          if [[ "$action" == delete ]]; then
+            echo "$id" >> "$RUNNER_TEMP/delete.txt"
+            deletions=$((deletions + 1))
+          fi
+
+          echo "| \`$id\` | ${created%T*} | ${tags:-none} | $action | $reason |" >> "$RUNNER_TEMP/plan.md"
+        done < "$RUNNER_TEMP/versions.tsv"
+
+        # GitHub refuses to delete a package's last version; never plan to empty a package.
+        if (( total > 0 && deletions == total )); then
+          fail "Every version of $PACKAGE matched for deletion; refusing to empty the package."
+        fi
+
+        echo "Planned: $deletions of $total versions."
+        cat "$RUNNER_TEMP/plan.md" >> "$GITHUB_STEP_SUMMARY"
+
+    #-------------------------------------------------------------------------------------------------------------------
+    # Remove Package Versions
+    #-------------------------------------------------------------------------------------------------------------------
+    - name: Remove Old Package Versions
+      run: |
+        planned=$(wc -l < "$RUNNER_TEMP/delete.txt")
+
+        if [[ "$DRY_RUN" == true ]]; then
+          echo "Dry run: $planned versions would be deleted. Nothing was deleted." | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        failed=0
+
+        while read -r id; do
+          if ! gh api -X DELETE "$PACKAGE_API/versions/$id" > /dev/null; then
+            echo "::warning::Could not delete version $id."
+            failed=$((failed + 1))
+          fi
+        done < "$RUNNER_TEMP/delete.txt"
+
+        echo "Deleted $((planned - failed)) of $planned planned versions." | tee -a "$GITHUB_STEP_SUMMARY"
+
+        if (( failed > 0 )); then
+          exit 1
+        fi

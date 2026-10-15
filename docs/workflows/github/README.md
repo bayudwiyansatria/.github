@@ -20,4 +20,5 @@ The Release GitHub Pages Workflow automates the deployment of a static site to G
 
 ### GitHub Storage Cleaner Workflow
 
-The GitHub Storage Cleaner Workflow automates the process of cleaning up storage in a GitHub repository by removing old artifacts and other unnecessary files.
+The GitHub Storage Cleaner Workflow removes old Actions artifacts and old container package versions in private
+repositories, keeping release, branch and `latest` tags and the newest builds of each image.
