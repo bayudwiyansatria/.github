@@ -56,6 +56,16 @@ on:
         type: boolean
         required: false
         default: true
+      CACHE_ENABLED:
+        description: Opt in to a separate BuildKit cache tag in the existing image repository; ignored for retagging
+        type: boolean
+        required: false
+        default: false
+      CACHE_SCOPE:
+        description: Optional cache discriminator for matrix builds sharing the same Dockerfile and context
+        type: string
+        required: false
+        default: ""
       #-----------------------------------------------------------------------------------------------------------------
       # Platform
       #-----------------------------------------------------------------------------------------------------------------
@@ -134,6 +144,11 @@ jobs:
     #-------------------------------------------------------------------------------------------------------------------
     # Build Package
     #-------------------------------------------------------------------------------------------------------------------
+    - name: Configure Docker Layer Cache
+      if: ${{ inputs.CACHE_ENABLED && !inputs.RETAGING_ONLY }}
+      uses: docker/setup-buildx-action@v4
+      with:
+        driver: docker-container
     - name: Retag Docker
       if: ${{ inputs.RETAGING_ONLY }}
       shell: bash
@@ -148,11 +163,69 @@ jobs:
         fi
         docker pull "${SOURCE_DOCKER_REPOSITORY}"
         docker tag "${SOURCE_DOCKER_REPOSITORY}" "${TARGET_DOCKER_REPOSITORY}"
+    - name: Build Docker with Layer Cache
+      if: ${{ inputs.CACHE_ENABLED && !inputs.RETAGING_ONLY }}
+      shell: bash
+      env:
+        DOCKER_REGISTRY: ${{ inputs.DOCKER_REGISTRY }}
+        DOCKER_REPOSITORY: ${{ inputs.DOCKER_REPOSITORY }}
+        DOCKER_IMAGE_TAG: ${{ inputs.DOCKER_IMAGE_TAG }}
+        DOCKER_FILE: ${{ inputs.DOCKER_FILE }}
+        DOCKER_BUILD_ARG: ${{ inputs.DOCKER_BUILD_ARG }}
+        WORKING_DIR: ${{ inputs.WORKING_DIR }}
+        CACHE_SCOPE: ${{ inputs.CACHE_SCOPE }}
+        CACHE_EXPORT_ENABLED: ${{ inputs.PUSH_ENABLED && github.event_name == 'push' }}
+      run: |
+        set -euo pipefail
+
+        # Keep cache manifests separate for each caller, branch, Dockerfile and matrix variant.
+        scope_hash="$(
+          printf '%s\0' \
+            "${GITHUB_REPOSITORY}" \
+            "${GITHUB_REF}" \
+            "${DOCKER_FILE}" \
+            "${WORKING_DIR}" \
+            "${CACHE_SCOPE}" |
+            sha256sum
+        )"
+
+        cache_tag="buildcache-${scope_hash:0:40}"
+        cache_ref="${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}:${cache_tag}"
+        image_ref="${DOCKER_REGISTRY}/${DOCKER_REPOSITORY}:${DOCKER_IMAGE_TAG}"
+
+        if [ "${image_ref}" = "${cache_ref}" ]; then
+          echo "The image tag must not be the reserved layer-cache tag." >&2
+          exit 1
+        fi
+
+        build_options=(
+          --load
+          --provenance=false
+          --sbom=false
+          --file "${DOCKER_FILE}"
+          --tag "${image_ref}"
+          --cache-from "type=registry,ref=${cache_ref}"
+        )
+
+        if [ -n "${DOCKER_BUILD_ARG}" ]; then
+          build_options+=(--build-arg "${DOCKER_BUILD_ARG}")
+        fi
+
+        # A build-only or review run may import a cache but never publishes one.
+        if [ "${CACHE_EXPORT_ENABLED}" = "true" ]; then
+          build_options+=(
+            --cache-to "type=registry,ref=${cache_ref},mode=max,oci-mediatypes=true,image-manifest=true,ignore-error=true"
+          )
+        fi
+
+        printf 'Layer cache: %s\n' "${cache_ref}"
+
+        docker buildx build "${build_options[@]}" "${WORKING_DIR}"
     - name: Build Docker with Argument
-      if: ${{ !inputs.RETAGING_ONLY && inputs.DOCKER_BUILD_ARG != null }}
+      if: ${{ !inputs.CACHE_ENABLED && !inputs.RETAGING_ONLY && inputs.DOCKER_BUILD_ARG != null }}
       run: docker build --build-arg ${{ inputs.DOCKER_BUILD_ARG }} -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.WORKING_DIR }}
     - name: Build Docker
-      if: ${{ !inputs.RETAGING_ONLY && inputs.DOCKER_BUILD_ARG == null }}
+      if: ${{ !inputs.CACHE_ENABLED && !inputs.RETAGING_ONLY && inputs.DOCKER_BUILD_ARG == null }}
       run: docker build -t ${{ inputs.DOCKER_REGISTRY }}/${{ inputs.DOCKER_REPOSITORY }}:${{ inputs.DOCKER_IMAGE_TAG }} -f ${{ inputs.DOCKER_FILE }} ${{ inputs.WORKING_DIR }}
     #-------------------------------------------------------------------------------------------------------------------
     # Push Package

@@ -27,6 +27,7 @@
   - [Docker Action Workflow](workflows/docker/README.md)
     - [Docker Build Workflow](workflows/docker/build.md)
     - [Deploy Docker Workflow](workflows/docker/deploy.md)
+  - [Docker layer cache change record](changes-log/2026-10-17-docker-layer-cache.md)
   - [.NET Action Workflow](workflows/dotnet/README.md)
     - [Build Dotnet Workflow](workflows/dotnet/build.md)
   - [Maven Action Workflow](workflows/maven/README.md)
